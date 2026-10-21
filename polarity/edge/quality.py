@@ -22,7 +22,7 @@ RETAKE_INSTRUCTIONS: dict[str, str] = {
 }
 
 # Order matters: the first failing metric chooses the retake instruction shown to the student.
-METRIC_ORDER = ("markers", "motion", "dark", "bright", "glare", "blur")
+METRIC_ORDER = ("markers", "motion", "dark", "glare", "bright", "blur")  # glare first: its fix (tilt) is more specific
 
 CHIP_NAMES = {"light": ("dark", "bright"), "focus": ("blur",), "glare": ("glare",), "board": ("markers",),
               "steady": ("motion",)}

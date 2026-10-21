@@ -152,7 +152,8 @@ def test_typed_question_and_safety_redirect(client: TestClient) -> None:
 
 def test_budget_exceeded_is_reported(client: TestClient) -> None:
     client.post("/api/session/start", json={"student_alias": "Bo", "lab_id": "lab1"})
-    client.post("/api/debug/budget", json={"day_usd": 0})
+    assert client.post("/api/debug/budget", json={"day_usd": 0}).status_code == 401  # TA PIN required
+    client.post("/api/debug/budget", json={"day_usd": 0}, headers=PIN)
     scene(client, "s1", "correct")
     r = client.post("/api/check")
     assert r.status_code == 429 and r.json()["error"] == "budget"
@@ -164,7 +165,11 @@ def test_guards_without_session_and_unknown_inputs(client: TestClient) -> None:
     assert client.post("/api/session/start", json={"student_alias": "X", "lab_id": "nope"}).status_code == 404
     assert client.post("/api/demo/scene", json={"step": "s9", "label": "x"}).status_code == 404
     assert client.get("/media/../../etc/passwd").status_code == 404
-    assert client.post("/api/debug/thresholds", json={"section": "env", "key": "ta_pin", "value": 1}).status_code == 422
+    assert client.post("/api/debug/thresholds", json={"section": "env", "key": "ta_pin", "value": 1}).status_code == 401
+    assert client.post("/api/debug/thresholds", json={"section": "env", "key": "ta_pin", "value": 1},
+                       headers=PIN).status_code == 422
+    ok = client.post("/api/debug/thresholds", json={"section": "quality", "key": "blur_var_min", "value": 50}, headers=PIN)
+    assert ok.status_code == 200 and client.rt.config.settings.quality.blur_var_min == 50.0
 
 
 def test_ta_skip_and_goto(client: TestClient) -> None:

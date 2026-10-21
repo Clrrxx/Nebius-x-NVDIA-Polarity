@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · {{ app_name }}</title>
+  <meta name="description" content="{{ tagline }}">
+  <link rel="icon" href="/static/img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/polarity.css">
+  <script>
+    // Apply the saved theme before first paint (no flash). Falls back to the server default.
+    try { var t = localStorage.getItem("polarity.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body class="page-{{ page }}{% if mock %} has-mockbar{% endif %}" data-page="{{ page }}">
+  {% if mock %}
+  <div class="mockbar" role="status">{{ icon("fix") }} Mock mode — not real AI output</div>
+  {% endif %}
+  {% block body %}{% endblock %}
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div id="icon-defs" hidden>
+    {% for name in icon_names %}<span data-icon="{{ name }}">{{ icon(name) }}</span>{% endfor %}
+  </div>
+  <script id="boot" type="application/json">{{ boot | tojson }}</script>
+  <script type="module" src="/static/js/{{ page }}.js"></script>
+</body>
+</html>

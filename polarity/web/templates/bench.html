@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block body %}
+{% set show_dots = true %}{% set show_help_pill = true %}
+{% include "_topbar.html" %}
+<main class="bench" id="main">
+  <section class="campanel" aria-label="Camera">
+    <div class="camera">
+      <img class="feed" id="feed" src="/stream.mjpg" alt="Live camera view of the breadboard with the detected board outlined">
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Camera view">
+          <button type="button" id="view-pip" aria-pressed="true">{{ icon("eye") }} What the AI sees</button>
+        </div>
+      </div>
+      <figure class="pip" id="pip">
+        <img id="pip-img" src="/stream.mjpg?view=warped" alt="Top-down warped view that the AI receives">
+        <figcaption>What the AI sees · top-down warp</figcaption>
+      </figure>
+      <div class="banner" id="cam-banner" role="alert" hidden>{{ icon("camera") }}<span id="cam-banner-text">Camera disconnected — reconnecting…</span></div>
+    </div>
+    <div class="camfoot">
+      <div class="qchips" id="qchips" aria-live="polite"></div>
+      <div class="spacer"></div>
+      <label class="demo-scene" id="demo-scene" hidden>Demo scene
+        <select class="select" id="scene-select" aria-label="Demo scene"></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="side" aria-label="Current step">
+    <div class="side__scroll" id="side-scroll">
+      <article class="card step" id="step-card">
+        <div class="row" style="align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <div class="eyebrow" id="step-eyebrow"></div>
+            <h1 id="step-title"></h1>
+          </div>
+          <button class="btn btn--ghost details-toggle" id="details-toggle" type="button" aria-expanded="true" aria-controls="step-details" hidden>Step details</button>
+        </div>
+        <p class="instruction" id="step-instruction"></p>
+        <div class="step__details" id="step-details">
+          <div class="illus" id="step-illus" hidden><img id="step-illus-img" alt=""></div>
+          <div class="willcheck"><h3>What I'll check</h3><ul id="step-checks"></ul></div>
+        </div>
+      </article>
+      <div class="verdict-slot" id="verdict-slot" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+    <div class="card actions actions--dock" id="actions">
+      <div class="staged" id="staged" hidden>{{ icon("mic") }}<span id="staged-text"></span><div class="spacer"></div>
+        <button class="btn btn--ghost" id="staged-ask" type="button">Ask now</button>
+        <button class="btn btn--ghost btn--icon" id="staged-clear" type="button" aria-label="Discard question">{{ icon("close") }}</button>
+      </div>
+      <button class="btn btn--primary btn--lg" id="check-btn" type="button">{{ icon("search") }}<span id="check-label">Check my step</span><span class="kbd" aria-hidden="true">Space</span></button>
+      <button class="btn btn--primary btn--lg" id="next-btn" type="button" hidden><span id="next-label">Next step</span>{{ icon("chevron") }}<span class="kbd" aria-hidden="true">Enter</span></button>
+      <div class="row">
+        <button class="btn mic" id="mic-btn" type="button" aria-describedby="mic-help">{{ icon("mic") }}<span id="mic-label">Hold to ask</span><span class="meter" aria-hidden="true"><i id="meter-fill"></i></span><span class="kbd" aria-hidden="true">V</span></button>
+        <button class="btn" id="ta-btn" type="button">{{ icon("bell") }} Call TA</button>
+      </div>
+      <form class="ask-row" id="ask-form" hidden>
+        <label class="sr-only" for="ask-input">Type a question</label>
+        <input class="input" id="ask-input" maxlength="300" placeholder="Type a question about this step…">
+        <button class="btn" type="submit">Ask</button>
+      </form>
+      <p class="muted dock-hint" id="mic-help"></p>
+    </div>
+  </section>
+</main>
+{% endblock %}

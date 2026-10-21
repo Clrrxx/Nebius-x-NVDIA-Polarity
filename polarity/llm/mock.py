@@ -107,7 +107,7 @@ def _verdict(payload: dict[str, Any], label: str | None, second_look: bool, lab:
     elif err is not None:
         bad = set(err.related_checks) or {checks[0]["id"]}
         results = [{"id": c["id"], "result": "fail" if c["id"] in bad else "pass",
-                    "observation": f"[mock] {err.visual_cue}" if c["id"] in bad else f"[mock] Looks right: {c['statement']}"}
+                    "observation": f"[mock] {err.visual_cue}" if c["id"] in bad else "[mock] Matches this demo scene."}
                    for c in checks]
         detected = [err.id]
         confidence = 0.86
@@ -119,7 +119,7 @@ def _verdict(payload: dict[str, Any], label: str | None, second_look: bool, lab:
                 results.append({"id": c["id"], "result": "not_visible",
                                 "observation": "[mock] This detail is in shadow, so it can't be confirmed from above."})
             else:
-                results.append({"id": c["id"], "result": "pass", "observation": f"[mock] Looks right: {c['statement']}"})
+                results.append({"id": c["id"], "result": "pass", "observation": "[mock] Matches this demo scene."})
         if partial:
             retake = "Tilt the lamp so the LED rim is lit, then check again if you want to confirm it."
             confidence = 0.82
@@ -196,9 +196,13 @@ def respond(role: str, messages: list[dict[str, Any]], schema: type[BaseModel] |
         _, intent, parts = canned_answer(q, False)
         return json.dumps({"intent": intent, "part_number": parts[0] if parts else None}), []
     if name == "ShortText":
-        words = (payload.get("text") or user_text).split()
+        text = payload.get("text") or user_text
         limit = int(payload.get("max_words") or 25)
-        return json.dumps({"text": " ".join(words[:limit])}), []
+        head = re.split(r"\s+[—–-]\s+|;\s+", text, maxsplit=1)[0].rstrip(" ,.")  # cut at a clause boundary
+        if len(head.split()) <= limit and head != text:
+            return json.dumps({"text": head + "."}), []
+        words = text.split()
+        return json.dumps({"text": " ".join(words[:limit]) + ("…" if len(words) > limit else "")}), []
     if name == "Diagnosis":
         fixes = payload.get("fix_count", 0)
         top = payload.get("top_error") or "no specific error id"

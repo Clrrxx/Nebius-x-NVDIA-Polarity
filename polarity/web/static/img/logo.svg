@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Polarity">
+<title>Polarity</title>
+<rect x="2" y="2" width="60" height="60" rx="16" fill="#0F2A2A"/>
+<rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" fill="none" stroke="#2DD4BF" stroke-opacity="0.45" stroke-width="1.5"/>
+<path d="M12 32h10" stroke="#E6EDF3" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M22 19.5L39 32 22 44.5z" fill="#2DD4BF"/>
+<path d="M40.5 18.5v27" stroke="#2DD4BF" stroke-width="4.4" stroke-linecap="round"/>
+<path d="M40.5 32h11.5" stroke="#E6EDF3" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M44.5 14.5l5.5-5.5M47 20.5l6.5-3.5" stroke="#F59E0B" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M50 9l.2 3.6M50 9l-3.6.2M53.5 17l-1.2 3.4M53.5 17l-3.5-.9" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<main class="card gate" id="main">
+  <img src="/static/img/logo.svg" alt="">
+  <h1 style="font-size:24px">{{ gate_title }}</h1>
+  <p class="muted">Enter the TA PIN to continue.</p>
+  <form class="stack" id="pin-form">
+    <label class="sr-only" for="pin">TA PIN</label>
+    <input class="input pin-input" id="pin" type="password" inputmode="numeric" autocomplete="off" autofocus required>
+    <button class="btn btn--primary btn--block" type="submit">Unlock</button>
+    <p class="tone-danger" id="pin-error" role="alert" hidden>Wrong PIN — try again.</p>
+  </form>
+  <a href="/" class="muted" style="font-size:14px">Back to the bench</a>
+</main>
+{% endblock %}

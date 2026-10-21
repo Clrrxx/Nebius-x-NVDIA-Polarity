@@ -24,14 +24,25 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from polarity import __version__
 from polarity.audio import AudioError, validate_wav
 from polarity.config import APP_NAME, TAGLINE
+from polarity.edge.quality import RETAKE_INSTRUCTIONS
+from polarity.engine import analytics
 from polarity.engine.session_engine import EngineError
 from polarity.llm.router import BudgetExceeded, InvalidModelOutput, ModelCallFailed, ModelUnavailable
 from polarity.runtime import Runtime
@@ -39,6 +50,18 @@ from polarity.runtime import Runtime
 log = logging.getLogger(__name__)
 WEB_DIR = Path(__file__).resolve().parent
 TA_COOKIE = "polarity_ta"
+ICON_DIR = WEB_DIR / "static" / "img" / "icons"
+ICON_NAMES = sorted(p.stem for p in ICON_DIR.glob("*.svg"))
+_ICON_CACHE: dict[str, str] = {}
+
+
+def icon(name: str, cls: str = "icon") -> Markup:
+    """Inline SVG icon (currentColor) so status colours and themes apply to it."""
+    if name not in _ICON_CACHE:
+        path = ICON_DIR / f"{name}.svg"
+        _ICON_CACHE[name] = path.read_text(encoding="utf-8").strip() if path.exists() else ""
+    svg = _ICON_CACHE[name]
+    return Markup(svg.replace("<svg ", f'<svg class="{cls}" ', 1)) if svg else Markup("")
 
 ENGINE_STATUS = {"no_session": 409, "completed": 409, "busy": 409, "bad_alias": 422, "unknown_lab": 404,
                  "no_camera": 503, "empty_question": 422, "bad_step": 422}
@@ -177,6 +200,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
             "has_key": bool(cfg.api_key), "tavily_enabled": bool(cfg.tavily_key), "role": cfg.role_override,
             "bench_id": cfg.bench_id, "retention_days": cfg.env.media_retention_days,
             "check_timeout_s": s.timeouts_s.perception,
+            "retake_instructions": RETAKE_INSTRUCTIONS,
         }
 
     app.state.safe_config = safe_config
@@ -383,7 +407,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
             "baselines": sorted(rt.engine.baselines), "baseline_pending": rt.engine.baseline_pending,
         }
 
-    @app.post("/api/debug/thresholds")
+    @app.post("/api/debug/thresholds", dependencies=[Depends(require_ta)])
     def debug_thresholds(body: ThresholdBody) -> dict[str, Any]:
         section = getattr(rt.config.settings, body.section, None)
         if section is None or body.section not in ("quality", "led", "decision") or not hasattr(section, body.key):
@@ -394,7 +418,7 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
         setattr(section, body.key, type(current)(body.value))
         return {"ok": True, "note": "Session-only change; edit config/settings.yaml to keep it."}
 
-    @app.post("/api/debug/budget")
+    @app.post("/api/debug/budget", dependencies=[Depends(require_ta)])
     def debug_budget(body: BudgetBody) -> dict[str, Any]:
         if body.session_usd is not None:
             rt.config.env.budget_session_usd = body.session_usd
@@ -403,11 +427,82 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
         return {"ok": True, "budget": {"session_usd": rt.config.env.budget_session_usd,
                                        "day_usd": rt.config.env.budget_day_usd}}
 
-    @app.post("/api/debug/mock_latency")
+    @app.post("/api/debug/mock_latency", dependencies=[Depends(require_ta)])
     def debug_mock_latency(body: LatencyBody) -> dict[str, Any]:
         if not rt.config.mock:
             raise HTTPException(409, "Only available in mock mode.")
         rt.config.env.polarity_mock_latency_ms = body.ms
         return {"ok": True}
+
+    # ── pages ────────────────────────────────────────────────────────────────────────────────
+
+    templates = Jinja2Templates(directory=WEB_DIR / "templates")
+    templates.env.globals.update(icon=icon, icon_names=ICON_NAMES)
+
+    def page(request: Request, name: str, page_id: str, title: str, **extra: Any) -> HTMLResponse:
+        boot = {"config": safe_config(), "page": page_id, **extra.pop("boot", {})}
+        ctx = {"app_name": APP_NAME, "tagline": TAGLINE, "mock": rt.config.mock, "page": page_id, "title": title,
+               "theme": rt.config.settings.ui.theme, "boot": boot, **extra}
+        return templates.TemplateResponse(request, name, ctx)
+
+    @app.get("/", response_class=HTMLResponse)
+    def start_page(request: Request) -> HTMLResponse:
+        return page(request, "start.html", "start", "Start")
+
+    @app.get("/bench", response_class=HTMLResponse, response_model=None)
+    def bench_page(request: Request) -> HTMLResponse | RedirectResponse:
+        if rt.engine.session is None:
+            return RedirectResponse("/", status_code=303)
+        return page(request, "bench.html", "bench", "Bench")
+
+    @app.get("/ta", response_class=HTMLResponse)
+    def ta_page(request: Request) -> HTMLResponse:
+        if not is_ta(request):
+            return page(request, "pin.html", "pin", "TA sign-in", gate_title="TA dashboard")
+        return page(request, "ta.html", "ta", "TA dashboard")
+
+    @app.get("/debug", response_class=HTMLResponse)
+    def debug_page(request: Request) -> HTMLResponse:
+        return page(request, "debug.html", "debug", "Debug", boot={"is_ta": is_ta(request)})
+
+    @app.get("/assets/print/{name}")
+    def print_asset(name: str) -> FileResponse:
+        if name not in ("marker_mat_A4.pdf", "marker_mat_A4.png"):
+            raise HTTPException(404, "not found")
+        path = rt.config.paths.root / "assets" / "print" / name
+        if not path.exists():
+            from polarity.edge.markers import write_mat
+
+            write_mat(path.parent, APP_NAME)
+        return FileResponse(path, filename=name)
+
+    # ── TA analytics ─────────────────────────────────────────────────────────────────────────
+
+    def _class_data(lab_id: str | None) -> analytics.ClassData:
+        ids = analytics.labs_with_sessions(rt.db)
+        chosen = lab_id or (rt.engine.lab.id if rt.engine.lab else None) or (ids[0] if ids else rt.config.env.default_lab)
+        lab = rt.labs.get(chosen)
+        if lab is None:
+            raise HTTPException(404, "Unknown lab.")
+        return analytics.ClassData(rt.db, lab)
+
+    @app.get("/api/ta/overview", dependencies=[Depends(require_ta)])
+    def ta_overview(lab_id: str | None = None) -> dict[str, Any]:
+        data = _class_data(lab_id)
+        out = analytics.overview(data)
+        out["labs_with_data"] = analytics.labs_with_sessions(rt.db)
+        return out
+
+    @app.get("/api/ta/heatmap", dependencies=[Depends(require_ta)])
+    def ta_heatmap(lab_id: str | None = None) -> dict[str, Any]:
+        return analytics.heatmap(_class_data(lab_id))
+
+    @app.get("/api/ta/session/{session_id}/timeline", dependencies=[Depends(require_ta)])
+    def ta_timeline(session_id: str, step_id: str | None = None) -> dict[str, Any]:
+        session = rt.db.get_session(session_id)
+        if session is None:
+            raise HTTPException(404, "Unknown session.")
+        lab = rt.labs.get(session.lab_id)
+        return {"session": session.model_dump(), "items": analytics.timeline(rt.db, lab, session_id, step_id)}
 
     return app

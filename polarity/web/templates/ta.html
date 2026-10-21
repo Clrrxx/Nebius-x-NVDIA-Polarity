@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block body %}
+{% set topbar_title = "TA dashboard" %}{% set topbar_sub = "" %}{% set show_ta_tools = true %}
+{% include "_topbar.html" %}
+<main class="ta" id="main">
+  <div class="row wrap">
+    <label class="demo-scene" id="lab-pick-wrap" hidden>Lab <select class="select" id="lab-pick" aria-label="Lab"></select></label>
+    <div class="spacer"></div>
+    <button class="btn" id="seed-btn" type="button" hidden>{{ icon("users") }} Seed demo class</button>
+    <button class="btn btn--ghost" id="clear-sim-btn" type="button" hidden>Remove simulated data</button>
+  </div>
+  <div class="simbanner" id="sim-banner" role="note" hidden>{{ icon("fix") }}<span>Includes simulated class data for demonstration. These numbers are not real results.</span></div>
+  <section class="tiles" aria-label="Class at a glance">
+    <div class="card tile"><div class="label">{{ icon("users") }} Active benches</div><div class="value" id="t-active">–</div></div>
+    <div class="card tile"><div class="label">{{ icon("pass") }} Completed</div><div class="value" id="t-done">–</div></div>
+    <div class="card tile"><div class="label">{{ icon("bell") }} Waiting for help</div><div class="value" id="t-help">–</div></div>
+    <div class="card tile"><div class="label">{{ icon("clock") }} Median time per step</div><div class="value" id="t-median">–</div></div>
+  </section>
+  <div class="ta-grid">
+    <section class="card" aria-labelledby="hq-title">
+      <div class="card__head">{{ icon("bell") }}<h2 id="hq-title">Help queue</h2><div class="spacer"></div><span class="muted" id="hq-count" style="font-size:14px"></span></div>
+      <div class="col-scroll"><div class="helpq" id="helpq" aria-live="polite"></div></div>
+    </section>
+    <section class="card" aria-labelledby="hm-title">
+      <div class="card__head">{{ icon("board") }}<h2 id="hm-title">Class heatmap</h2><div class="spacer"></div><span class="muted" style="font-size:14px">Click a cell for the attempt timeline</span></div>
+      <div class="legend" id="hm-legend" aria-label="Legend">
+        <span><i class="s-not_started"></i>Not started</span>
+        <span><i class="s-in_progress"></i>In progress</span>
+        <span><i class="s-passed_first"></i>✓ Passed first try</span>
+        <span><i class="s-passed_after"></i>✓n Passed after fixes</span>
+        <span><i class="s-struggling"></i>! Struggling (2+ fixes)</span>
+        <span><i class="s-stuck"></i>!! Stuck (3+ fixes or help)</span>
+        <span><i class="cant-tell"></i>? Many can't-tell</span>
+      </div>
+      <div class="heatmap-wrap"><table class="heatmap" id="heatmap" aria-describedby="hm-title"></table></div>
+      <div class="empty" id="hm-empty" hidden>{{ icon("users") }}<strong>No benches yet</strong><span>Start a session on a bench, or seed demo data to preview the dashboard.</span></div>
+    </section>
+    <section class="card" aria-labelledby="ins-title">
+      <div class="card__head">{{ icon("spark") }}<h2 id="ins-title">Step insights</h2></div>
+      <div class="col-scroll"><div class="stack" id="insights"></div></div>
+    </section>
+  </div>
+</main>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+{% endblock %}

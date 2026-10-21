@@ -1,0 +1,25 @@
+<header class="topbar">
+  <a class="brand" href="/" aria-label="{{ app_name }} home"><img src="/static/img/logo.svg" alt=""><span class="hide-sm">{{ app_name }}</span></a>
+  <div class="topbar__divider hide-sm" aria-hidden="true"></div>
+  <div class="topbar__title">
+    <strong id="tb-title">{{ topbar_title | default("") }}</strong>
+    <span id="tb-sub">{{ topbar_sub | default("") }}</span>
+  </div>
+  {% if show_dots %}<ol class="dots" id="dots" aria-label="Step progress"></ol>{% endif %}
+  <div class="spacer"></div>
+  {% if show_help_pill %}<span class="pill pill--help" id="help-pill" role="status" hidden>TA notified</span>{% endif %}
+  {% if show_ta_tools %}
+  <button class="btn btn--primary" id="report-btn">{{ icon("report") }}<span class="hide-sm">Generate class report</span></button>
+  {% endif %}
+  <span class="pill {{ 'pill--mock' if mock else '' }}" id="conn-pill" role="status">{{ "MOCK MODE" if mock else "Connecting…" }}</span>
+  <div class="menu-wrap">
+    <button class="btn btn--ghost btn--icon" id="settings-btn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">{{ icon("gear") }}</button>
+    <div class="menu" id="settings-menu" hidden>
+      <div class="switch"><label for="set-theme">Light theme (projector)</label><input type="checkbox" id="set-theme"></div>
+      <div class="switch"><label for="set-voice-on">Speak feedback</label><input type="checkbox" id="set-voice-on"></div>
+      <div class="field"><label for="set-voice">Voice</label><select class="select" id="set-voice"><option value="">Browser default</option></select></div>
+      {% if show_ta_tools %}<div class="switch"><label for="set-sound">Sound for new help requests</label><input type="checkbox" id="set-sound"></div>{% endif %}
+      <p class="muted" style="font-size:13px">Captions always stay on screen.</p>
+    </div>
+  </div>
+</header>

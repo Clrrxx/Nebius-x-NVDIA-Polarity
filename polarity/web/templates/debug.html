@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block body %}
+{% set topbar_title = "Debug" %}{% set topbar_sub = "Models, routing, live metrics" %}
+{% include "_topbar.html" %}
+<main class="debug" id="main">
+  <section class="card span-2" id="unlock-card" hidden>
+    <form class="row wrap" id="unlock-form">
+      {{ icon("shield") }}<strong>Controls on this page change the running bench.</strong><span class="muted">Enter the TA PIN to unlock them.</span>
+      <div class="spacer"></div>
+      <label class="sr-only" for="unlock-pin">TA PIN</label>
+      <input class="input" id="unlock-pin" type="password" inputmode="numeric" style="width:140px" placeholder="TA PIN">
+      <button class="btn btn--primary" type="submit">Unlock</button>
+    </form>
+  </section>
+  <section class="card">
+    <div class="card__head">{{ icon("chip") }}<h2>Model routing</h2></div>
+    <table class="table" id="routing"><thead><tr><th>Role</th><th>Model</th><th>Case</th><th>Used for</th></tr></thead><tbody></tbody></table>
+    <p class="muted" style="font-size:13px;margin-top:8px" id="routing-note"></p>
+  </section>
+  <section class="card">
+    <div class="card__head">{{ icon("clock") }}<h2>Budget</h2></div>
+    <div class="budget" id="budget"></div>
+    <div class="row wrap" style="margin-top:12px">
+      <button class="btn" data-ctl="budget-zero" type="button">Simulate budget limit</button>
+      <button class="btn btn--ghost" data-ctl="budget-reset" type="button">Restore budget</button>
+    </div>
+  </section>
+  <section class="card span-2">
+    <div class="card__head">{{ icon("refresh") }}<h2>Last 20 model calls</h2><div class="spacer"></div><span class="muted" id="tokens" style="font-size:14px"></span></div>
+    <div style="overflow-x:auto"><table class="table" id="calls"><thead><tr><th>Time</th><th>Role</th><th>Model</th><th>OK</th><th class="num">Latency</th><th class="num">Tokens in/out</th><th class="num">Cost</th><th>Error</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section class="card">
+    <div class="card__head">{{ icon("eye") }}<h2>Live quality metrics</h2></div>
+    <div class="qchips" id="qchips"></div>
+    <div class="stack" id="sliders" style="margin-top:12px"></div>
+    <p class="muted" style="font-size:13px;margin-top:8px">Slider changes last for this server session only; copy good values into <span class="mono">config/settings.yaml</span>.</p>
+  </section>
+  <section class="card">
+    <div class="card__head">{{ icon("light") }}<h2>LED detector</h2></div>
+    <div class="preview" style="aspect-ratio:4/3"><img id="ledmask" alt="LED candidate pixels highlighted in teal on the warped board"></div>
+    <div class="row wrap" style="margin-top:12px">
+      <button class="btn" data-ctl="baseline" type="button">{{ icon("camera") }} Set baseline</button>
+      <span class="muted" id="baseline-state" style="font-size:14px"></span>
+    </div>
+  </section>
+  <section class="card" id="scene-card" hidden>
+    <div class="card__head">{{ icon("spark") }}<h2>Demo scene picker</h2></div>
+    <div class="stack" id="scene-grid"></div>
+    <div class="row wrap" style="margin-top:12px">
+      <button class="btn" data-ctl="slow" type="button">Simulate slow model (35 s)</button>
+      <button class="btn btn--ghost" data-ctl="fast" type="button">Normal mock speed</button>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card__head">{{ icon("report") }}<h2>Last verdict (raw JSON)</h2></div>
+    <pre class="json" id="last-verdict">–</pre>
+  </section>
+  <section class="card span-2">
+    <div class="card__head">{{ icon("board") }}<h2>capabilities.json</h2><div class="spacer"></div><span class="muted" id="caps-state" style="font-size:14px"></span></div>
+    <pre class="json" id="caps">–</pre>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block body %}
+{% set topbar_title = "Welcome" %}{% set topbar_sub = "Set up your bench" %}
+{% include "_topbar.html" %}
+<main class="start" id="main">
+  <section class="hero stack">
+    <div class="lockup"><img src="/static/img/logo.svg" alt=""><span>{{ app_name }}</span></div>
+    <div>
+      <h1>Build your circuit one checked step at a time.</h1>
+      <p class="tagline">{{ tagline }}</p>
+    </div>
+    <div class="card" id="resume-card" hidden>
+      <div class="row">
+        <div style="flex:1"><div class="eyebrow">Session in progress</div><strong id="resume-who"></strong></div>
+        <a class="btn btn--primary" href="/bench">Continue</a>
+      </div>
+    </div>
+    <form class="card stack" id="start-form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="alias">Your nickname</label>
+        <input class="input" id="alias" name="alias" maxlength="40" required placeholder="e.g. Robin" aria-describedby="alias-help">
+        <span class="help" id="alias-help">Use a nickname — no real names needed.</span>
+      </div>
+      <div class="row wrap">
+        <div class="field" style="flex:2;min-width:200px">
+          <label for="lab">Lab</label>
+          <select class="select" id="lab" name="lab"></select>
+        </div>
+        <div class="field" style="flex:1;min-width:120px">
+          <label for="bench">Bench ID</label>
+          <input class="input" id="bench" name="bench" maxlength="20" placeholder="B07">
+        </div>
+      </div>
+      <button class="btn btn--primary btn--lg btn--block" id="start-btn" type="submit" disabled>Start lab</button>
+      <p class="muted" id="start-help" style="font-size:14px">All five camera checks must be green before you start.</p>
+    </form>
+    <div class="safety" role="note">{{ icon("shield") }}<div><strong>Safety first.</strong> Batteries and USB power only — never mains. If anything gets hot, smells or smokes: switch off and call the TA.</div></div>
+  </section>
+  <section class="card stack" aria-labelledby="camcheck-title">
+    <div class="card__head" style="margin-bottom:0">{{ icon("camera") }}<h2 id="camcheck-title">Camera check</h2><div class="spacer"></div><span class="muted" id="cam-source" style="font-size:14px"></span></div>
+    <div class="preview"><img id="preview" src="/stream.mjpg" alt="Live camera preview with the detected board outlined"></div>
+    <div class="qchips" id="qchips" aria-live="polite"></div>
+    <p class="muted" id="qhint" style="font-size:14px"></p>
+    <div class="links">
+      <a href="/assets/print/marker_mat_A4.pdf" target="_blank" rel="noopener">{{ icon("print") }} Print marker mat</a>
+      <a href="#" id="demo-link" hidden>{{ icon("spark") }} I'm using demo mode</a>
+      <a href="/ta">{{ icon("users") }} TA dashboard</a>
+      <a href="/debug">{{ icon("chip") }} Debug</a>
+    </div>
+  </section>
+</main>
+{% endblock %}
