@@ -21,6 +21,7 @@ led:
   s_min: 70
   core_v_min: 245             # over-exposed LED core (white centre with a red halo)
   strong_min: 0.60            # signal_strength at/above this is "strong" physical evidence
+  skin_reject: true           # ignore skin-coloured pixels (the finger holding the button is not light)
 images:
   max_long_side: 1280
   jpeg_quality: 85

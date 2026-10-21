@@ -1,0 +1,91 @@
+# Lab 2 (P2 template): first soldering practice, an LED and resistor on a strip of perfboard.
+# Honest about the limits of visual inspection: a camera above the board cannot verify a solder joint,
+# so every joint-quality check is allow_uncertain and the instructions flag joint quality for TA review.
+# Placement checks stay verifiable. Copy this file, adjust it to your kit, and publish via the lab editor.
+id: lab2_solder_template
+title: Soldering practice (template)
+version: "0.1"
+summary: >-
+  Solder a red LED and a resistor onto perfboard and power them from a 3 V battery holder.
+  Polarity checks placement and polarity from above; solder joint quality is flagged for TA review.
+kit:
+  - Small piece of perfboard (0.1 inch pitch, copper pads on the underside)
+  - Temperature-controlled soldering iron with stand, damp sponge or brass wool
+  - Lead-free solder wire, flush cutters, safety glasses
+  - 1 × red 5 mm LED, 1 × 100 Ω resistor (brown-black-brown)
+  - 2×AA battery holder with switch and red/black leads (3 V)
+safety_notes:
+  - Wear safety glasses while soldering and trimming leads.
+  - Always return the iron to its stand. Never touch the tip or the joint you just made.
+  - Battery power only for the test. Never connect anything to mains power.
+  - Work with ventilation; if anything smokes or smells wrong, switch off and call the TA.
+breadboard_conventions: >-
+  Perfboard holes are NOT connected to each other: a connection only exists where solder or a wire joins
+  pads. Components go in from the top (component side) and are soldered on the copper side underneath.
+  From above you can see placement and polarity, but not the quality of the joints underneath.
+steps:
+  - id: p1
+    title: Place the parts
+    instruction: >-
+      Insert the resistor and the LED from the top side, LED long leg (+) next to the resistor, flat edge
+      away from it. Bend the legs slightly outward underneath so the parts stay put.
+    checks:
+      - id: c_res_inserted
+        statement: A resistor (beige body, colour bands) lies flat on the top side of the perfboard.
+      - id: c_led_inserted
+        statement: A red LED stands on the top side of the perfboard next to the resistor.
+      - id: c_led_polarity
+        statement: The LED's flat rim edge faces away from the resistor.
+        allow_uncertain: true
+    common_errors:
+      - id: E_P_LED_REVERSED
+        description: The LED is inserted backwards.
+        visual_cue: The LED's flat rim edge faces the resistor.
+        fix_hint_l1: Check which side of the LED rim is flat.
+        fix_hint_l2: The LED looks reversed — the flat edge should face away from the resistor.
+        fix_hint_l3: Before soldering, pull the LED out, turn it around, and reinsert it with the long leg next to the resistor.
+        related_checks: [c_led_polarity]
+  - id: p2
+    title: Solder the joints
+    instruction: >-
+      Flip the board, heat each pad and leg together for 2–3 seconds, then feed in solder until it flows
+      into a small shiny cone. Joint quality is flagged for TA review — the camera can only see so much.
+    capture_tip: Turn the board copper-side up inside the markers so the joints face the camera.
+    checks:
+      - id: c_joints_shiny_cones
+        statement: Each joint looks like a small shiny cone that covers its pad.
+        allow_uncertain: true
+      - id: c_no_bridges
+        statement: No solder bridges join neighbouring pads that should be separate.
+        allow_uncertain: true
+      - id: c_no_cold_joints
+        statement: No joint looks dull, lumpy or balled up on the leg.
+        allow_uncertain: true
+    common_errors:
+      - id: E_P_BRIDGE
+        description: A solder bridge joins two pads that should be separate.
+        visual_cue: A blob of solder spans the gap between two neighbouring pads.
+        fix_hint_l1: Look closely at the gaps between neighbouring pads.
+        fix_hint_l2: Two pads look joined by a solder bridge.
+        fix_hint_l3: Ask the TA to check, then remove the bridge with desoldering braid and reheat each joint separately.
+        related_checks: [c_no_bridges]
+  - id: p3
+    title: Trim and power test
+    instruction: >-
+      Trim the legs above the joints, connect the battery leads to the resistor's free end (+) and the LED's
+      short leg (−), switch ON, then press Check.
+    led_check:
+      expect_lit: true
+      colour: red
+      instruction_for_capture: Switch the battery ON, then press Check.
+    checks:
+      - id: c_led_lit
+        statement: The LED is lit (glowing red).
+    common_errors:
+      - id: E_P_NO_LIGHT
+        description: The LED does not light.
+        visual_cue: The LED looks dark with the battery switched on.
+        fix_hint_l1: Is the battery switch ON and are both leads attached?
+        fix_hint_l2: The LED isn't lighting — check the LED's orientation and each joint.
+        fix_hint_l3: Switch OFF and ask the TA to inspect the joints and the LED polarity.
+        related_checks: [c_led_lit]

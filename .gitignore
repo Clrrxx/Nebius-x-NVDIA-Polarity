@@ -25,3 +25,8 @@ data/logs/
 Thumbs.db
 .idea/
 .vscode/
+
+# Synthetic placeholder renders (regenerate: python -m polarity render-synthetic).
+# Save real team photos as .jpg so they are committed and override the synthetic .png renders.
+data/demo/**/*.png
+data/demo/**/synthetic_manifest.json

@@ -67,3 +67,20 @@ def fake_token_factory() -> Iterator[str]:
     yield f"http://127.0.0.1:{port}/v1/"
     server.should_exit = True
     thread.join(timeout=5)
+
+
+_SCENE_CACHE: dict[tuple[str, str], object] = {}
+
+
+@pytest.fixture(scope="session")
+def scene():  # noqa: ANN201 - returns a cached renderer
+    """``scene(step, label)`` → synthetic BGR frame (rendered once per test session)."""
+    from polarity.demo.synthetic_board import render_scene
+
+    def _get(step: str, label: str):  # noqa: ANN202
+        key = (step, label)
+        if key not in _SCENE_CACHE:
+            _SCENE_CACHE[key] = render_scene(step, label)
+        return _SCENE_CACHE[key].copy()  # type: ignore[attr-defined]
+
+    return _get

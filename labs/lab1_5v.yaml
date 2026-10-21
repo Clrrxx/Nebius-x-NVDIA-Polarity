@@ -1,0 +1,239 @@
+# Lab 1 variant: push-button LED on a 5 V USB breadboard power module with a 220 Ω resistor.
+# Same steps as lab1.yaml; generated from it, then reviewed. Select with DEFAULT_LAB=lab1_5v.
+id: lab1_5v
+title: Push-button LED (5 V USB)
+version: '1.0'
+summary: Build a circuit on a half-size breadboard where holding a push button lights a red LED, powered by a 5
+  V USB breadboard power module.
+kit:
+- Half-size (400-point) solderless breadboard
+- 5 V USB breadboard power module with + (red) and − (black) outputs. Keep it switched OFF while building.
+- 1 × red 5 mm LED
+- 1 × 220 Ω resistor (red-red-brown)
+- 1 × 6×6 mm 4-pin tactile push button
+- Jumper wires (red, black, any other colour)
+safety_notes:
+- USB power (5 V) only. Never connect anything to mains power.
+- Keep the power module switched OFF until Step 6.
+- If anything gets warm, smells or smokes, switch the power module OFF and call the TA.
+breadboard_conventions: The long strips along the top and bottom edges are power rails. Holes along a rail are connected
+  along its length. The red line marks '+', the blue line marks '−'. The middle area is split by a centre channel.
+  On each side of the channel, each numbered strip of 5 holes (a–e above, f–j below) is connected internally. Strips
+  on opposite sides of the channel are NOT connected. Two component legs in the same numbered strip on the same
+  side are electrically joined.
+steps:
+- id: s1
+  title: Power rails
+  instruction: Power module OFF. Connect the module's + output (red) to the top + rail (red line) and its − output
+    (black) to the top − rail (blue line).
+  illustration: s1.svg
+  checks:
+  - id: c_red_plus
+    statement: The power module's + output (red lead or + pin) enters the rail marked by the red line.
+  - id: c_black_minus
+    statement: The power module's − output (black lead or − pin) enters the rail marked by the blue line.
+  - id: c_leads_not_in_strips
+    statement: Neither power connection is in the middle numbered strips.
+  common_errors:
+  - id: E_RAILS_SWAPPED
+    description: Power leads swapped (red in the − rail, black in the + rail).
+    visual_cue: The red lead ends in the rail beside the blue line and the black lead in the rail beside the red
+      line.
+    fix_hint_l1: Look at which coloured line each power lead sits next to.
+    fix_hint_l2: Your leads are swapped — red is in the − rail and black is in the + rail.
+    fix_hint_l3: Pull both leads out. Put the red lead in the rail with the red line and the black lead in the rail
+      with the blue line.
+    related_checks:
+    - c_red_plus
+    - c_black_minus
+  - id: E_LEAD_IN_STRIP
+    description: A power lead is in a numbered strip instead of a power rail.
+    visual_cue: One lead ends in the middle area (rows a–j) rather than in a long rail along the edge.
+    fix_hint_l1: Follow each power lead to the hole it goes into.
+    fix_hint_l2: One power lead is in a numbered strip in the middle, not in a rail along the edge.
+    fix_hint_l3: Move that lead into the long rail along the top edge — red into the rail with the red line, black
+      into the rail with the blue line.
+    related_checks:
+    - c_leads_not_in_strips
+  - id: E_SAME_RAIL
+    description: Both power leads are in the same rail, which short-circuits the supply when switched on.
+    visual_cue: Both power leads end in holes along the same edge rail.
+    fix_hint_l1: Check which rail each power lead is in — are they different?
+    fix_hint_l2: Both leads are in the same rail, so the supply would be shorted through the rail.
+    fix_hint_l3: Keep the switch OFF and move the black lead into the rail with the blue line, leaving red in the
+      rail with the red line.
+    related_checks:
+    - c_black_minus
+- id: s2
+  title: Resistor
+  instruction: Put one resistor leg in the top + rail and the other leg in a numbered strip in the top half (e.g.
+    strip 10).
+  illustration: s2.svg
+  checks:
+  - id: c_res_present
+    statement: A resistor (small beige body with colour bands) is on the board.
+  - id: c_leg_in_plus_rail
+    statement: One resistor leg is in the rail marked by the red line.
+  - id: c_other_leg_in_strip
+    statement: The other resistor leg is in a numbered strip in the top half (rows a–e).
+  - id: c_not_shorted
+    statement: The two resistor legs are not in the same strip or the same rail.
+  common_errors:
+  - id: E_RES_SHORTED
+    description: Both resistor legs are in the same strip, so the resistor is bypassed.
+    visual_cue: Both legs of the resistor sit in the same numbered column on the same side of the channel.
+    fix_hint_l1: Look at the numbered strip each resistor leg is in.
+    fix_hint_l2: Both resistor legs are in the same strip, so the strip shorts the resistor out.
+    fix_hint_l3: Move one leg up into the + rail (red line) so the resistor bridges the rail and strip 10.
+    related_checks:
+    - c_not_shorted
+  - id: E_RES_IN_MINUS
+    description: The resistor is connected to the − rail instead of the + rail.
+    visual_cue: The resistor's rail leg is in the rail beside the blue line.
+    fix_hint_l1: Check which rail the resistor's top leg goes into.
+    fix_hint_l2: The resistor is in the − rail (blue line); it needs to be in the + rail.
+    fix_hint_l3: Move the resistor's rail leg into the rail with the red line, keeping the other leg in strip 10.
+    related_checks:
+    - c_leg_in_plus_rail
+  - id: E_RES_BOTH_IN_STRIPS
+    description: Neither resistor leg is in a power rail, so it is not connected to the power supply.
+    visual_cue: Both resistor legs end in numbered strips; neither reaches the long rails at the top.
+    fix_hint_l1: Does either resistor leg reach the long rail at the top?
+    fix_hint_l2: Both resistor legs are in numbered strips, so the resistor isn't connected to power.
+    fix_hint_l3: Move one leg up into the + rail (red line) and keep the other leg in strip 10.
+    related_checks:
+    - c_leg_in_plus_rail
+- id: s3
+  title: LED
+  instruction: Put the LED's long leg (+) in the same strip as the resistor's lower leg, and the short leg (−, flat
+    edge) in the next strip along.
+  illustration: s3.svg
+  checks:
+  - id: c_led_present
+    statement: A red LED is on the board.
+  - id: c_led_legs_different_strips
+    statement: The LED's two legs are in two different numbered strips.
+  - id: c_anode_shares_resistor_strip
+    statement: One LED leg is in the same numbered strip as the resistor's lower leg.
+  - id: c_orientation
+    statement: The LED's flat edge / short leg is on the side away from the resistor.
+    allow_uncertain: true
+  common_errors:
+  - id: E_LED_REVERSED
+    description: The LED is in backwards.
+    visual_cue: The LED's flat rim edge / short leg is on the resistor side.
+    fix_hint_l1: Take a close look at which side of the LED faces the resistor.
+    fix_hint_l2: Your LED looks reversed — the long leg should share the resistor's strip.
+    fix_hint_l3: Pull the LED out, turn it around so the long leg goes in the resistor's strip, and push it back
+      in.
+    related_checks:
+    - c_orientation
+  - id: E_LED_SAME_STRIP
+    description: Both LED legs are in the same strip, so the LED is shorted.
+    visual_cue: Both LED legs sit in one numbered column on the same side of the channel.
+    fix_hint_l1: Count which numbered strip each LED leg is in.
+    fix_hint_l2: Both LED legs are in the same strip, so current goes around the LED instead of through it.
+    fix_hint_l3: Turn the LED so its legs sit side by side in two neighbouring strips — long leg in the resistor's
+      strip, short leg in the next one.
+    related_checks:
+    - c_led_legs_different_strips
+  - id: E_LED_NOT_CONNECTED
+    description: The LED is not connected to the resistor.
+    visual_cue: Neither LED leg shares a numbered strip with the resistor's lower leg.
+    fix_hint_l1: Trace the strip the resistor's lower leg is in. Does the LED touch it?
+    fix_hint_l2: The LED isn't in the same strip as the resistor, so no current can reach it.
+    fix_hint_l3: Move the LED so its long leg is in the resistor's strip and the short leg is in the next strip
+      along.
+    related_checks:
+    - c_anode_shares_resistor_strip
+- id: s4
+  title: Push button
+  instruction: Place the button across the centre channel so one pair of its legs shares the LED's short-leg strip.
+  illustration: s4.svg
+  checks:
+  - id: c_btn_present
+    statement: A push button (square body with a round top) is on the board.
+  - id: c_btn_straddles_channel
+    statement: The button sits across the centre channel, with legs on both sides of it.
+  - id: c_btn_shares_cathode_strip
+    statement: One button leg is in the same numbered strip as the LED's short leg.
+  - id: c_btn_rotation
+    statement: The button is rotated so its legs bridge the channel, not run along it.
+    allow_uncertain: true
+  common_errors:
+  - id: E_BTN_NOT_STRADDLING
+    description: The button does not straddle the centre channel.
+    visual_cue: All four button legs are on the same side of the centre channel.
+    fix_hint_l1: Look at where the button sits relative to the gap down the middle of the board.
+    fix_hint_l2: The button isn't across the centre channel, so its legs are shorted together by the strips.
+    fix_hint_l3: Move the button so it sits across the channel — two legs in row e, two in row f, one pair in the
+      LED's short-leg strip.
+    related_checks:
+    - c_btn_straddles_channel
+  - id: E_BTN_WRONG_STRIP
+    description: The button is not connected to the LED.
+    visual_cue: No button leg shares a numbered strip with the LED's short leg.
+    fix_hint_l1: Which strip is the LED's short leg in? Is the button in that strip too?
+    fix_hint_l2: The button is across the channel but not in the LED's short-leg strip.
+    fix_hint_l3: Slide the button along so one pair of its legs is in the same strip number as the LED's short leg.
+    related_checks:
+    - c_btn_shares_cathode_strip
+  - id: E_BTN_ROTATED
+    description: The button is turned 90°, so it may be always on or never switch.
+    visual_cue: The button's leg pairs run along the channel instead of bridging it; legs look bent or not square
+      in the holes.
+    fix_hint_l1: Check the button's orientation — do its legs drop straight into the holes?
+    fix_hint_l2: The button looks rotated 90°, so it may be always on or never switch.
+    fix_hint_l3: Pull the button out, rotate it a quarter turn, and push it in across the channel without bending
+      the legs.
+    related_checks:
+    - c_btn_rotation
+- id: s5
+  title: Ground wire
+  instruction: Add a black jumper from the button's other leg strip to the top − rail.
+  illustration: s5.svg
+  checks:
+  - id: c_jumper_present
+    statement: A black jumper wire is on the board.
+  - id: c_jumper_from_button_other_strip
+    statement: One end of the jumper is in the strip of the button's other legs (not the LED's strip).
+  - id: c_jumper_to_minus_rail
+    statement: The other end of the jumper is in the rail marked by the blue line.
+  common_errors:
+  - id: E_GND_TO_PLUS
+    description: The ground wire goes to the + rail instead of the − rail.
+    visual_cue: The jumper's rail end is in the rail beside the red line.
+    fix_hint_l1: Look at which rail the black jumper ends in.
+    fix_hint_l2: The jumper goes to the + rail; it must go to the − rail to complete the circuit.
+    fix_hint_l3: Move the jumper's rail end into the rail with the blue line.
+    related_checks:
+    - c_jumper_to_minus_rail
+  - id: E_GND_WRONG_STRIP
+    description: The ground wire starts in a strip the button is not in.
+    visual_cue: The jumper's board end is not in the same numbered strip as the button's other legs.
+    fix_hint_l1: Find the button legs that are not in the LED's strip. Is the jumper in that strip?
+    fix_hint_l2: The jumper starts in a strip that isn't connected to the button.
+    fix_hint_l3: Move the jumper's board end into the same strip number as the button's other pair of legs.
+    related_checks:
+    - c_jumper_from_button_other_strip
+- id: s6
+  title: Power test
+  instruction: Switch the power module ON. Hold the button down, then press Check.
+  illustration: s6.svg
+  capture_tip: Hold the button with one finger from the side so the LED stays visible.
+  led_check:
+    expect_lit: true
+    colour: red
+    instruction_for_capture: Hold the button down, then press Check.
+  checks:
+  - id: c_led_lit
+    statement: The LED is lit (glowing red).
+  common_errors:
+  - id: E_NO_LIGHT
+    description: The LED does not light when the button is held.
+    visual_cue: The LED looks dark — no red glow while the button is pressed.
+    fix_hint_l1: Is the power module switched ON, and are you holding the button down firmly?
+    fix_hint_l2: The LED isn't lighting, so something earlier in the circuit is open or reversed.
+    fix_hint_l3: Switch the power module OFF, then run the board check (bug hunt) to find which step to fix.
+    related_checks:
+    - c_led_lit

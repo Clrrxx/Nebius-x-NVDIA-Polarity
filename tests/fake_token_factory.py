@@ -20,8 +20,13 @@ NANO = "nvidia/nvidia-nemotron-3-nano-30b-a3b"
 SUPER = "nvidia/nemotron-3-super-120b-a12b"
 ULTRA = "nvidia/nemotron-3-ultra-253b"
 OTHER = "meta/llama-3.3-70b-instruct"
+# Router-test models: FLAKY answers 429 on its first call, BADJSON returns prose until asked to repair,
+# DOWN always answers 503. They are not listed by /models (tests configure them directly).
+FLAKY = "test/flaky"
+BADJSON = "test/badjson"
+DOWN = "test/down"
 LISTED = [OMNI, NANO, SUPER, ULTRA, OTHER]
-ACCEPTED = {OMNI.lower(), NANO, SUPER, ULTRA, OTHER}
+ACCEPTED = {OMNI.lower(), NANO, SUPER, ULTRA, OTHER, FLAKY, BADJSON, DOWN}
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -45,6 +50,7 @@ def _completion(model: str, content: str, reasoning: str | None = None,
 
 def create_app() -> FastAPI:
     app = FastAPI()
+    app.state.calls = {}
 
     @app.get("/v1/models")
     def models() -> dict[str, Any]:
@@ -56,6 +62,11 @@ def create_app() -> FastAPI:
         model = body.get("model")
         if model not in ACCEPTED:
             return _error(404, f"The model `{model}` does not exist.")
+        app.state.calls[model] = app.state.calls.get(model, 0) + 1
+        if model == DOWN:
+            return _error(503, "service unavailable")
+        if model == FLAKY and app.state.calls[model] == 1:
+            return _error(429, "rate limited")
         thinking_off = (body.get("chat_template_kwargs") or {}).get("enable_thinking") is False
         messages = body.get("messages", [])
         kinds: set[str] = set()
@@ -70,6 +81,10 @@ def create_app() -> FastAPI:
                     if part.get("type") == "text":
                         text += part.get("text", "") + "\n"
         reasoning = None if thinking_off or "/no_think" in text else "Let me think about this..."
+        if model in (FLAKY, BADJSON):
+            if model == BADJSON and "Return ONLY the corrected JSON" not in text:
+                return _completion(model, "Sure! Here is my answer: it looks fine.", reasoning)
+            return _completion(model, '<think>checking</think>```json\n{"text": "ok"}\n```', reasoning)
         if "input_audio" in kinds:
             return _error(400, "Unsupported content part type: input_audio")
         if body.get("tools"):
