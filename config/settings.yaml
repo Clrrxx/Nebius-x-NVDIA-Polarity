@@ -1,0 +1,58 @@
+# Non-secret defaults. Secrets and per-machine switches live in .env (see .env.example).
+# Tune quality/led thresholds for your rig with:  python -m polarity calibrate
+quality:
+  blur_var_min: 80.0          # variance of Laplacian on 1024-wide gray warped image
+  brightness_min: 70
+  brightness_max: 200
+  glare_ratio_max: 0.02       # fraction of pixels >= 250
+  markers_min: 3
+  motion_max: 6.0             # mean abs diff between frames over 0.5 s (0–255 scale)
+decision:
+  pass_min_conf: 0.75
+  fix_min_conf: 0.60
+  grey_zone: [0.50, 0.80]     # trigger second look when final confidence falls here
+  second_look_zoom: 1.6
+  second_look_temperature: 0.2
+led:
+  min_area_px: 25
+  max_area_px: 4000
+  v_delta_min: 45             # brightness increase vs baseline
+  red_hue_ranges: [[0, 12], [165, 180]]
+  s_min: 70
+  core_v_min: 245             # over-exposed LED core (white centre with a red halo)
+  strong_min: 0.60            # signal_strength at/above this is "strong" physical evidence
+images:
+  max_long_side: 1280
+  jpeg_quality: 85
+audio:
+  max_seconds: 15
+  sample_rate: 16000
+timeouts_s:
+  perception: 30
+  fast_text: 15
+  reasoning: 45
+  deep: 120
+retries:
+  interactive: 2
+  background: 3
+ui:
+  theme: dark                 # dark | light
+  speak_feedback: true
+board:
+  warp_width: 1024
+  warp_height: 768
+  marker_ids: [0, 1, 2, 3]    # top-left, top-right, bottom-right, bottom-left (DICT_4X4_50)
+  roi: [0.15, 0.10, 0.70, 0.80]   # fixed ROI (x, y, w, h as fractions) when MARKERS_ENABLED=false
+camera:
+  ring_frames: 15             # ring buffer length (sampled at <= ring_hz, so ~1 s of history)
+  ring_hz: 15
+  stream_fps: 12
+  stream_width: 960
+  quality_hz: 2
+escalation:
+  fix_count: 3                # help request after this many FIX verdicts on one step
+  uncertain_streak: 3         # ...or this many consecutive CAN'T TELL results
+  power_test_fails: 2         # ...or this many failed power tests (LED step)
+hub:
+  send_thumbnails: false      # benches never send images to the hub unless this is true
+  retry_seconds: 10

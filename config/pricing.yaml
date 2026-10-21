@@ -1,0 +1,14 @@
+# Per-model prices in USD per 1 million tokens, used ONLY for the budget guard and cost display.
+#
+# TEAM: copy the real prices from the Nebius Token Factory console pricing page
+# (https://tokenfactory.nebius.com → Models / Pricing). Do NOT guess. While a price is null,
+# the app shows the cost as "n/a" and the budget guard cannot stop spending for that model.
+#
+# Keys are the exact model IDs written to data/capabilities.json by `python -m polarity verify`.
+# Matching is case-insensitive. Example shape (values are placeholders, not real prices):
+#
+#   "nvidia/example-model-id":
+#     input_per_million: null
+#     output_per_million: null
+#
+models: {}

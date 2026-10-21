@@ -1,0 +1,2 @@
+# Optional: only needed for `python -m polarity verify --record` (records the Phase 0 audio test from your mic).
+sounddevice>=0.4

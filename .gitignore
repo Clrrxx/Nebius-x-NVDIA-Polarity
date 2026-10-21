@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.ruff_cache/
+.pytest_cache/
+
+# Runtime data (local to each bench)
+data/polarity.db*
+data/media/
+data/capabilities.json
+data/verify_assets/
+data/eval_runs/
+data/lab_drafts/
+data/logs/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

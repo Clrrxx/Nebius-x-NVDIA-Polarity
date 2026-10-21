@@ -1,0 +1,25 @@
+{
+  "_comment": "EXAMPLE ONLY. Shape of data/capabilities.json written by `python -m polarity verify`. The values below are illustrative placeholders, NOT real Token Factory results.",
+  "generated_at": "2026-10-21T12:00:00+08:00",
+  "base_url": "https://api.tokenfactory.us-central1.nebius.com/v1/",
+  "models": {
+    "perception": {"id": "example/nemotron-nano-omni-model-id", "case": "exact", "latency_ms": null},
+    "fast_text": {"id": "example/nemotron-nano-30b-model-id", "case": "exact", "latency_ms": null},
+    "reasoning": {"id": "example/nemotron-super-120b-model-id", "case": "exact", "latency_ms": null},
+    "deep": {"id": "example/nemotron-ultra-model-id", "case": "exact", "latency_ms": null, "available": true}
+  },
+  "all_model_ids": [],
+  "perception_fallback_vl": false,
+  "image_input": true,
+  "audio_input": {"supported": true, "variant": "input_audio"},
+  "combined_image_audio": "VERIFIED",
+  "video_input": "SKIPPED",
+  "json_mode": "json_schema",
+  "tools_mode": "native",
+  "thinking_control": "chat_template_kwargs",
+  "audio_mode_recommended": "omni_combined",
+  "verified": false,
+  "audio_modality_proof": true,
+  "thinking_details": {},
+  "notes": []
+}
