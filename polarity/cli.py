@@ -81,6 +81,17 @@ def devices(max_index: int = typer.Option(5, help="Highest camera index to probe
 
 
 @app.command()
+def doctor(
+    skip_camera: bool = typer.Option(False, "--skip-camera", help="Don't try to open the camera."),
+    offline: bool = typer.Option(False, "--offline", help="Don't contact Token Factory."),
+) -> None:
+    """Check Python, packages, OpenCV/ArUco, keys, Token Factory, camera, port and disk; print exact fixes."""
+    from polarity.doctor import main as doctor_main
+
+    raise typer.Exit(code=doctor_main(skip_camera=skip_camera, skip_network=offline))
+
+
+@app.command()
 def markers(out: Path = typer.Option(None, help="Output folder (default: assets/print).")) -> None:
     """Generate the printable ArUco marker mat (A4 PDF + PNG)."""
     from polarity.config import APP_NAME, get_config

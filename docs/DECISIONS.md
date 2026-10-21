@@ -106,3 +106,14 @@ decided, why, and how to change it. Newest phase at the bottom.
 | 2026-10-22 | `docs/EVAL_RESULTS.md` ships as PENDING with the exact section headings the eval writer preserves ("What we changed after eval", "Run history"). | Real numbers need the team's photos and a key; the change log must survive re-runs. | Run `python -m polarity eval --dataset data/eval/lab1`. |
 | 2026-10-22 | CI (ubuntu/macos/windows × Python 3.12) is added now rather than in Phase 7: ruff, pytest, and an `eval --mock` smoke test, with mock/demo env vars and no secrets. On Linux it installs `libgl1` for OpenCV. | Phase 6's acceptance is "pytest green on all OSes in CI". It runs on the first push. | `.github/workflows/ci.yml`. |
 | 2026-10-22 | `Runtime.stop()` closes the SQLite connection. | Windows cannot delete a database file that is still open. | `polarity/runtime.py`. |
+
+## Phase 7: setup scripts, docs, submission package
+
+| Date | Decision | Reason | How to change it |
+|---|---|---|---|
+| 2026-10-22 | `polarity doctor` reports FAIL only for blockers (Python version, missing packages, OpenCV without ArUco). A missing key, camera, capabilities file, prices, busy port or low disk are WARN with the exact fix. | Demo mode works without any of those, and the setup scripts end by running doctor. | `polarity/doctor.py`. |
+| 2026-10-22 | The setup scripts also render the synthetic demo scenes before running doctor, and recreate `.venv` if it was built with an unsupported Python. | Demo mode works immediately after setup; an old 3.13 venv would otherwise fail later. | `scripts/setup_mac.sh`, `scripts/setup_windows.ps1`. |
+| 2026-10-22 | The README has two machine-updated blocks: the model table (after `verify`) and the eval headline (after a real `eval`). Mock runs never update it. The README location follows the docs folder, so tests (which redirect docs) can never edit the real README. | Keeps the required "exact model IDs" and "real eval numbers" honest and current. | `polarity/docs_sync.py`. |
+| 2026-10-22 | README screenshots come from demo mode, with the MOCK MODE bar visible and a caption saying so; a TODO asks the team to replace the hero with a GIF of the real rig. | Shows the product today without passing mock output off as real AI output. | `docs/img/`. |
+| 2026-10-22 | The work was committed locally per phase and not pushed. | Pushing to the team's public GitHub repo is an outward-facing step for the team to take. | `git push origin main`. |
+| 2026-10-22 | `requirements.lock.txt` reflects the macOS arm64 environment used to build and test. | `pip freeze` is platform-specific (for example `uvloop` does not exist on Windows); `requirements.txt` stays the cross-platform source. | Re-freeze on each platform if needed. |
