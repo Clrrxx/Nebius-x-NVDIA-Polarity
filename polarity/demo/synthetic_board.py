@@ -22,6 +22,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
+from polarity.cvio import imwrite
 from polarity.demo import geometry as g
 from polarity.imaging import get_font
 
@@ -451,7 +452,7 @@ def render_all(out_dir: Path, steps: Iterable[str] | None = None, labels: Iterab
                 continue
             path = out_dir / step / f"{label}.png"
             path.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(path), render_scene(step, label), [cv2.IMWRITE_PNG_COMPRESSION, 6])
+            imwrite(path, render_scene(step, label), [cv2.IMWRITE_PNG_COMPRESSION, 6])
             written.append(path)
     manifest_path = out_dir / SYNTHETIC_MANIFEST
     existing: set[str] = set()

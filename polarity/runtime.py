@@ -181,6 +181,7 @@ class Runtime:
         if self.hub_client:
             self.hub_client.stop()
         self.started = False
+        self.db.close()  # release the SQLite file (Windows cannot delete open files)
 
     # ── hooks used by the engine ─────────────────────────────────────────────────────────────
 

@@ -11,6 +11,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from polarity.cvio import imwrite
+
 
 class MediaStore:
     def __init__(self, root: Path) -> None:
@@ -25,7 +27,7 @@ class MediaStore:
     def save_image(self, session_id: str, name: str, img: np.ndarray, quality: int = 88) -> str:
         """Save a BGR image as JPEG; returns the path relative to the media root (POSIX style)."""
         path = self._path(session_id, name)
-        cv2.imwrite(str(path), img, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, quality])
         return path.relative_to(self.root).as_posix()
 
     def save_bytes(self, session_id: str, name: str, data: bytes) -> str:

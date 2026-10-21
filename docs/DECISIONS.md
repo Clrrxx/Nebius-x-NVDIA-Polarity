@@ -94,3 +94,15 @@ decided, why, and how to change it. Newest phase at the bottom.
 | 2026-10-22 | Hub mode: benches keep a persistent outbox (`hub_outbox`) and post to `/api/hub/ingest` with the shared TA PIN; the queue drains in order and stops at the first failure until the next retry. Help requests are re-sent once their AI summary exists. The hub runs without a camera. Resolving a request on the hub does not notify the bench (the TA walks over). | Survives Wi-Fi drops without losing records; keeps the protocol simple. | `polarity/hub/client.py`, `--role`. |
 | 2026-10-22 | Board thumbnails are never sent to the hub unless `hub.send_thumbnails: true`, and raw images and audio never are. | Privacy default from 13.4. | `config/settings.yaml`. |
 | 2026-10-22 | Added `POLARITY_LABS_DIR` so tests (and demo runs) can publish labs into a temporary folder. | A test run once published a compiled lab into the repo's `labs/`; it was removed and the override prevents it. | `polarity/paths.py`. |
+
+## Phase 6: tests and evaluation harness
+
+| Date | Decision | Reason | How to change it |
+|---|---|---|---|
+| 2026-10-22 | An autouse test fixture blocks every non-local network connection. | Proves the suite runs offline (mock models, demo camera, fake Tavily, localhost fake Token Factory). | `no_network` in `tests/conftest.py`. |
+| 2026-10-22 | All image file I/O goes through `polarity/cvio.py` (encode/decode in memory + Python file I/O). | `cv2.imread`/`imwrite` fail silently on Windows paths with non-ASCII characters (for example a user folder "Zoë"). | `polarity/cvio.py`. |
+| 2026-10-22 | `polarity capture` refuses `CAMERA_SOURCE=demo`; `polarity calibrate` allows it. | Synthetic frames must never enter the evaluation dataset. | `polarity/edge/rigtools.py`. |
+| 2026-10-22 | Capture and calibrate use an OpenCV window (Space/Q/B keys, trackbars) rather than a web page. | Works the same on macOS, Windows and Linux with the camera the bench already opens; calibrate prints a ready-to-paste `settings.yaml` block. | `polarity/edge/rigtools.py`. |
+| 2026-10-22 | `docs/EVAL_RESULTS.md` ships as PENDING with the exact section headings the eval writer preserves ("What we changed after eval", "Run history"). | Real numbers need the team's photos and a key; the change log must survive re-runs. | Run `python -m polarity eval --dataset data/eval/lab1`. |
+| 2026-10-22 | CI (ubuntu/macos/windows × Python 3.12) is added now rather than in Phase 7: ruff, pytest, and an `eval --mock` smoke test, with mock/demo env vars and no secrets. On Linux it installs `libgl1` for OpenCV. | Phase 6's acceptance is "pytest green on all OSes in CI". It runs on the first push. | `.github/workflows/ci.yml`. |
+| 2026-10-22 | `Runtime.stop()` closes the SQLite connection. | Windows cannot delete a database file that is still open. | `polarity/runtime.py`. |

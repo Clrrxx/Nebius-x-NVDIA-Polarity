@@ -23,6 +23,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from polarity.cvio import imread
 from polarity.edge.motion import MotionMonitor
 
 log = logging.getLogger(__name__)
@@ -260,7 +261,7 @@ class DemoCameraSource:
     def _image(self, key: tuple[str, str]) -> np.ndarray | None:
         if key not in self._cache:
             path = self.scenes().get(key)
-            img = cv2.imread(str(path)) if path else None
+            img = imread(path) if path else None
             if img is None:
                 return None
             self._cache[key] = img

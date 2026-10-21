@@ -187,6 +187,53 @@ def seed_demo(
                      "'simulated data' banner; remove with `python -m polarity seed-demo --clear`.")
 
 
+def _rig(demo_ok: bool) -> tuple[object, object, object]:
+    from polarity.config import get_config
+    from polarity.runtime import Runtime
+
+    cfg = get_config()
+    if cfg.env.camera_source == "demo" and not demo_ok:
+        _console().print("[red]CAMERA_SOURCE=demo: this tool needs the real camera (set CAMERA_SOURCE=opencv).[/red]")
+        raise typer.Exit(code=2)
+    rt = Runtime(cfg)
+    return cfg, rt.camera, rt.verifier
+
+
+@app.command()
+def capture(
+    lab: str = typer.Option(None, help="Lab id (default: DEFAULT_LAB)."),
+    step: str = typer.Option(..., help="Step id, e.g. s3."),
+    label: str = typer.Option(..., help="correct, an error id such as E_LED_REVERSED, or _baseline (LED step)."),
+) -> None:
+    """Save evaluation photos from the real rig: Space saves raw + warped, Q quits."""
+    from polarity.edge.rigtools import RigToolError, run_capture
+    from polarity.models.lab import load_lab
+
+    cfg, camera, verifier = _rig(demo_ok=False)
+    lab_def = load_lab(cfg.paths.labs / f"{lab or cfg.env.default_lab}.yaml")  # type: ignore[attr-defined]
+    try:
+        saved = run_capture(cfg, lab_def, step, label, camera, verifier)
+    except RigToolError as exc:
+        _console().print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    _console().print(f"{saved} photos in data/eval/{lab_def.id}/{step}/{label}/")
+
+
+@app.command()
+def calibrate() -> None:
+    """Tune quality/LED thresholds live; prints a settings.yaml block when you quit."""
+    from polarity.edge.rigtools import RigToolError, run_calibrate
+
+    cfg, camera, verifier = _rig(demo_ok=True)
+    try:
+        snippet = run_calibrate(cfg, camera, verifier)
+    except RigToolError as exc:
+        _console().print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    _console().print("Paste into config/settings.yaml (replacing the matching keys):")
+    print(snippet)
+
+
 @app.command()
 def purge(days: int = typer.Option(None, help="Retention in days (default: MEDIA_RETENTION_DAYS).")) -> None:
     """Delete stored bench media older than the retention period."""

@@ -20,8 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import cv2
-
+from polarity.cvio import imread
 from polarity.demo.synthetic_board import SYNTHETIC_MANIFEST
 from polarity.llm.prompts import prompt_hash
 from polarity.models.lab import LabDefinition
@@ -205,14 +204,14 @@ def run_eval(config: Any, dataset: Path, lab: LabDefinition, limit: int | None =
     for i, s in enumerate(samples):
         step = lab.step(s.step_id)
         assert step is not None
-        frame = cv2.imread(str(s.path))
+        frame = imread(s.path)
         if frame is None:
             continue
         baseline = None
         if step.led_check is not None:
             if s.step_id not in baselines:
                 bpath = _baseline_for(dataset, lab, s.step_id, s.synthetic)
-                bframe = cv2.imread(str(bpath)) if bpath else None
+                bframe = imread(bpath) if bpath else None
                 baselines[s.step_id] = verifier.analyse(bframe)[1] if bframe is not None else None
             baseline = baselines[s.step_id]
         req = CheckRequest(lab=lab, step=step, frame=frame, hint_level=1, motion=0.0, led_baseline=baseline,

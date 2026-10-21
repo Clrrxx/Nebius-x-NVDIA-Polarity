@@ -118,3 +118,27 @@ def client(isolated_env: Path, demo_set: Path):  # noqa: ANN201
     with TestClient(create_app(rt)) as c:
         c.rt = rt  # type: ignore[attr-defined]
         yield c
+
+
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "testserver", "0.0.0.0"}
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail any test that tries to reach a non-local host: the suite must run fully offline."""
+    real_connect = socket.socket.connect
+    real_getaddrinfo = socket.getaddrinfo
+
+    def guarded_connect(self: socket.socket, address: object) -> object:
+        host = address[0] if isinstance(address, tuple) else address
+        if isinstance(host, str) and host not in _LOCAL_HOSTS and not host.startswith("127."):
+            raise RuntimeError(f"Network access blocked in tests: {host}")
+        return real_connect(self, address)  # type: ignore[arg-type]
+
+    def guarded_getaddrinfo(host: object, *args: object, **kwargs: object) -> object:
+        if isinstance(host, str) and host not in _LOCAL_HOSTS and not host.startswith("127."):
+            raise RuntimeError(f"Network access blocked in tests: {host}")
+        return real_getaddrinfo(host, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(socket.socket, "connect", guarded_connect)
+    monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
