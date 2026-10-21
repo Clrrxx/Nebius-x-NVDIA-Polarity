@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+from polarity.audio import read_wav_mono, resample_linear, write_wav_pcm16  # noqa: F401 - re-exported
 from polarity.imaging import get_font
 
 SPEECH_TEXT = "Hello, this is a test. The secret word is banana."
@@ -105,53 +106,6 @@ def make_board_png(path: Path) -> Path:
 
 
 # ── audio ────────────────────────────────────────────────────────────────────────────────────────
-
-def read_wav_mono(path: Path) -> tuple[np.ndarray, int]:
-    """Read a PCM WAV file as mono float32 in [-1, 1]."""
-    with wave.open(str(path), "rb") as wf:
-        sr = wf.getframerate()
-        ch = wf.getnchannels()
-        sw = wf.getsampwidth()
-        raw = wf.readframes(wf.getnframes())
-    if sw == 1:
-        data = (np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
-    elif sw == 2:
-        data = np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
-    elif sw == 3:
-        b = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3)
-        ints = (b[:, 0].astype(np.int32) | (b[:, 1].astype(np.int32) << 8) | (b[:, 2].astype(np.int32) << 16))
-        ints = np.where(ints & 0x800000, ints - 0x1000000, ints)
-        data = ints.astype(np.float32) / 8388608.0
-    elif sw == 4:
-        data = np.frombuffer(raw, dtype="<i4").astype(np.float32) / 2147483648.0
-    else:
-        raise ValueError(f"Unsupported WAV sample width: {sw}")
-    if ch > 1:
-        data = data.reshape(-1, ch).mean(axis=1)
-    return data, sr
-
-
-def resample_linear(x: np.ndarray, sr_in: int, sr_out: int) -> np.ndarray:
-    """Linear-interpolation resampler (adequate for speech intelligibility tests)."""
-    if sr_in == sr_out or x.size == 0:
-        return x.astype(np.float32)
-    n_out = max(1, round(x.size * sr_out / sr_in))
-    t_in = np.arange(x.size, dtype=np.float64) / sr_in
-    t_out = np.arange(n_out, dtype=np.float64) / sr_out
-    return np.interp(t_out, t_in, x).astype(np.float32)
-
-
-def write_wav_pcm16(path: Path, samples: np.ndarray, sr: int) -> None:
-    """Write mono float samples as 16-bit PCM WAV."""
-    clipped = np.clip(samples, -1.0, 1.0)
-    pcm = (clipped * 32767.0).astype("<i2")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with wave.open(str(path), "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sr)
-        wf.writeframes(pcm.tobytes())
-
 
 def normalise_wav(src: Path, dst: Path, sr_out: int = TARGET_SR) -> float:
     """Convert any PCM WAV to 16 kHz mono PCM16. Returns the duration in seconds."""

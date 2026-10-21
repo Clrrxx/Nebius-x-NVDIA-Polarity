@@ -45,6 +45,42 @@ def verify(
 
 
 @app.command()
+def run(
+    port: int = typer.Option(None, help="Port (default: PORT from .env, 8765). The next free port is used if busy."),
+    lan: bool = typer.Option(False, "--lan", help="Listen on all interfaces (hub mode / other devices)."),
+    open_browser: bool = typer.Option(False, "--open-browser", help="Open the default browser."),
+    role: str = typer.Option("standalone", help="standalone | bench | hub"),
+    hub_url: str = typer.Option(None, help="Bench role: the hub's URL, e.g. http://192.168.1.20:8765"),
+    bench_id: str = typer.Option(None, help="Bench label shown to the TA, e.g. B07"),
+) -> None:
+    """Start the bench (or hub) web app."""
+    from polarity.server import serve
+
+    if role not in ("standalone", "bench", "hub"):
+        raise typer.BadParameter("role must be standalone, bench or hub")
+    if role == "bench" and not hub_url:
+        raise typer.BadParameter("--role bench needs --hub-url")
+    serve(port=port, lan=lan or role == "hub", open_browser=open_browser, role=role, hub_url=hub_url,
+          bench_id=bench_id, path="/ta" if role == "hub" else "/")
+
+
+@app.command()
+def devices(max_index: int = typer.Option(5, help="Highest camera index to probe.")) -> None:
+    """List cameras that open (indices 0–5) and their resolution."""
+    from rich.table import Table
+
+    from polarity.edge.camera import probe_devices
+
+    table = Table(title="Cameras")
+    for col in ("Index", "Opens", "Resolution / error"):
+        table.add_column(col)
+    for d in probe_devices(max_index):
+        table.add_row(str(d["index"]), "yes" if d["ok"] else "no", d.get("resolution") or d.get("error") or "")
+    _console().print(table)
+    _console().print("Set CAMERA_INDEX in .env to the camera above your board.")
+
+
+@app.command()
 def markers(out: Path = typer.Option(None, help="Output folder (default: assets/print).")) -> None:
     """Generate the printable ArUco marker mat (A4 PDF + PNG)."""
     from polarity.config import APP_NAME, get_config

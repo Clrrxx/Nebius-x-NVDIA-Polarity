@@ -84,3 +84,32 @@ def scene():  # noqa: ANN201 - returns a cached renderer
         return _SCENE_CACHE[key].copy()  # type: ignore[attr-defined]
 
     return _get
+
+
+@pytest.fixture(scope="session")
+def demo_set(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The full synthetic demo set, rendered once per test session."""
+    from polarity.demo.synthetic_board import render_all
+
+    root = tmp_path_factory.mktemp("demo_set") / "lab1"
+    render_all(root)
+    return root
+
+
+@pytest.fixture
+def client(isolated_env: Path, demo_set: Path):  # noqa: ANN201
+    """TestClient for the full app in mock + demo mode, with the demo scenes in this test's data dir."""
+    import shutil
+
+    from fastapi.testclient import TestClient
+
+    from polarity import config
+    from polarity.runtime import Runtime
+    from polarity.web.app import create_app
+
+    shutil.copytree(demo_set, isolated_env / "data" / "demo" / "lab1")
+    config.reset_config()
+    rt = Runtime(config.get_config())
+    with TestClient(create_app(rt)) as c:
+        c.rt = rt  # type: ignore[attr-defined]
+        yield c
