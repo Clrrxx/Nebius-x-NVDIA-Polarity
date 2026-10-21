@@ -163,6 +163,30 @@ def eval_cmd(
         console.print(f"  {name}: {path}")
 
 
+@app.command("seed-demo")
+def seed_demo(
+    students: int = typer.Option(28, help="Number of simulated students."),
+    clear: bool = typer.Option(False, "--clear", help="Remove all simulated records instead."),
+    seed: int = typer.Option(10, help="Random seed (10 tracks the target first-try rates closely)."),
+    lab: str = typer.Option(None, help="Lab id (default: DEFAULT_LAB)."),
+) -> None:
+    """Seed a simulated class for the TA dashboard demo (always flagged as simulated)."""
+    from polarity.config import get_config
+    from polarity.demo.seed import seed_class
+    from polarity.models.lab import load_lab
+    from polarity.storage.db import Database
+
+    cfg = get_config()
+    db = Database(cfg.paths.db)
+    if clear:
+        _console().print(f"Removed {db.clear_simulated()} simulated sessions (and their attempts and help requests).")
+        return
+    counts = seed_class(db, load_lab(cfg.paths.labs / f"{lab or cfg.env.default_lab}.yaml"), students, seed)
+    _console().print(f"Seeded {counts['sessions']} simulated students: {counts['attempts']} attempts, "
+                     f"{counts['help']} help requests, {counts['completed']} completed. The TA dashboard shows a "
+                     "'simulated data' banner; remove with `python -m polarity seed-demo --clear`.")
+
+
 @app.command()
 def purge(days: int = typer.Option(None, help="Retention in days (default: MEDIA_RETENTION_DAYS).")) -> None:
     """Delete stored bench media older than the retention period."""

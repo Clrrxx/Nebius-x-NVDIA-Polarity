@@ -119,11 +119,11 @@ function renderHelp(items) {
         el("span", { class: `urg u-${urgency}` }, urgency === "high" ? icon("fix") : icon("bell"), el("span", { text: urgency })),
         el("span", { class: "muted", style: "font-size:13px", text: TRIGGER[h.trigger] || h.trigger }),
         h.is_simulated ? el("span", { class: "sim-tag", text: "simulated" }) : null),
-      el("div", { class: "hcard__body" },
+      el("div", { class: `hcard__body${h.thumb ? "" : " no-thumb"}` },
         el("div", { class: "stack", style: "gap:6px" }, summary,
           sum && sum.likely_root_cause ? el("p", { class: "action" }, el("strong", { text: "Likely cause: " }), sum.likely_root_cause) : null,
           sum && sum.suggested_ta_action ? el("p", { class: "action" }, el("strong", { text: "Suggested: " }), sum.suggested_ta_action) : null),
-        h.thumb ? el("img", { src: h.thumb, alt: `Latest board photo from ${h.alias}`, loading: "lazy" }) : el("span")),
+        h.thumb ? el("img", { src: h.thumb, alt: `Latest board photo from ${h.alias}`, loading: "lazy" }) : null),
       el("div", { class: "row" },
         el("button", { class: "btn btn--ghost", type: "button", on: { click: () => openTimeline(h.session_id, h.alias, h.step_id) } }, icon("clock"), "Timeline"),
         el("div", { class: "spacer" }),
@@ -171,7 +171,7 @@ function renderHeatmap(h) {
   $("#hm-legend").hidden = h.rows.length === 0;
   if (!h.rows.length) return;
   const head = el("thead", {}, el("tr", {}, el("th", { scope: "col", text: "Student · bench" }),
-    ...h.steps.map((s, i) => el("th", { scope: "col" }, `Step ${i + 1}`, el("span", { text: s.title })))));
+    ...h.steps.map((s, i) => el("th", { scope: "col" }, el("small", { class: "step-no", text: `Step ${i + 1}` }), el("span", { text: s.title })))));
   const body = el("tbody", {}, ...h.rows.map((row) => el("tr", {},
     el("th", { scope: "row", title: row.alias }, row.alias, row.bench_id ? el("small", { text: row.bench_id }) : null,
       row.is_simulated ? el("small", { class: "sim-tag", text: " sim" }) : null),
@@ -200,12 +200,12 @@ async function openTimeline(sessionId, alias, stepId) {
   if (!ok) { toast("Could not load the timeline.", "error"); return; }
   const items = data.items.filter((a) => !stepId || a.step_id === stepId);
   const list = items.length ? el("ol", { class: "timeline" }, ...items.map((a) => el("li", {},
-    a.thumb ? el("img", { src: a.thumb, alt: `Board photo for ${a.step_title}`, loading: "lazy" }) : el("div", { class: "skeleton", style: "width:112px;height:84px" }),
+    a.thumb ? el("img", { src: a.thumb, alt: `Board photo for ${a.step_title}`, loading: "lazy" }) : el("div", { class: "nophoto", text: a.is_simulated ? "no photo (simulated)" : "no photo" }),
     el("div", { class: "stack", style: "gap:4px" },
       el("div", { class: "row", style: "gap:8px" }, el("strong", { text: a.kind === "ask" ? "Question" : a.kind === "ta_skip" ? "Skipped by TA" : (a.status || "").toUpperCase() }),
         el("span", { class: "muted", style: "font-size:13px", text: `${a.step_title} · ${new Date(a.created_at).toLocaleTimeString()}` })),
       a.question ? el("p", { class: "obs" }, `“${a.question}” → ${a.answer || ""}`) : null,
-      ...a.observations.map((o) => el("p", { class: "obs", text: `${o.result}: ${(o.observation || "").replace(/^\[mock\]\s*/, "")}` })),
+      ...a.observations.map((o) => el("p", { class: "obs", text: `${o.id} · ${o.result}${o.observation && !/^\[(mock|simulated)\]$/.test(o.observation) ? ": " + o.observation.replace(/^\[mock\]\s*/, "") : ""}` })),
       a.detected_error_ids.length ? el("p", { class: "obs", text: `Detected: ${a.detected_error_ids.join(", ")}` }) : null,
       el("p", { class: "obs mono", text: [a.model_id && `model ${a.model_id}`, a.latency_ms !== null && a.latency_ms !== undefined && `${a.latency_ms} ms`, a.reason].filter(Boolean).join(" · ") }))))) :
     el("p", { class: "muted", text: "No attempts on this step yet." });

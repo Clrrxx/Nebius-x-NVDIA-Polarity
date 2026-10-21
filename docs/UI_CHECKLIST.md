@@ -12,7 +12,7 @@ screenshots were reviewed by eye for layout, overflow, contrast and wording. Eve
 | PASS | scene `s1/correct`, Space | ✅ | ✅ | Banner icon + word + colour; "Next step" replaces Check in the action dock and takes focus (Enter works). |
 | PASS · 1 thing to double-check | scene `s3/_partial` | ✅ | ✅ | Lists the fine-detail check the student should confirm themselves. |
 | FIX, hint level 1 → 2 → 3 | scene `s4/E_BTN_NOT_STRADDLING`, three checks | ✅ | ✅ | Hint dots fill 1/2/3; the TA-authored hint line is hidden when it would repeat the caption; third FIX raises "TA notified". |
-| CAN'T TELL (model: hands over board) | scene `s*/_hand` | ✅ | ✅ | Covered by API tests and checked manually; retake asks for hands out of frame. |
+| CAN'T TELL (model: hands over board) | scene `s1/_hand` | ✅ | ✅ | Model-level uncertainty (checks `not_visible`); retake card with a hand icon asks for hands out of frame. |
 | Thinking | any Check | ✅ | ✅ | Step card collapses to its header, skeleton verdict, button counts "Looking closely… N s"; no layout jump when the verdict replaces the skeleton. |
 | Timeout (30 s) | Debug → "Simulate slow model (35 s)" | ✅ | ✅ | "I couldn't reach the AI. Your work is saved — try Check again." The late answer still replaces it when it arrives. |
 | Budget exceeded | Debug → "Simulate budget limit" | ✅ | ✅ | "BUDGET LIMIT" card with the scope and amount; no retry button. |
@@ -24,8 +24,8 @@ screenshots were reviewed by eye for layout, overflow, contrast and wording. Eve
 | Debug panel | `/debug` | ✅ | ✅ | Routing, budget meter (warns when prices are empty), last 20 calls, live sliders, LED mask, scene picker, raw verdict, capabilities. Controls need the TA PIN. |
 | TA PIN gate | `/ta` without cookie | ✅ | ✅ | |
 | TA dashboard (live session) | `/ta` after a bench session | ✅ | ✅ | Help queue card, heatmap row, insights, counters. |
-| TA with simulated data | Phase 4 seed | ⏳ | ⏳ | Verified in Phase 4. |
-| Class report | Phase 4 report | ⏳ | ⏳ | Verified in Phase 4. |
+| TA with simulated data | `POST /api/demo/seed` (28 students) | ✅ | ✅ | Amber "Includes simulated class data" banner; help cards marked SIMULATED; heatmap rows tagged "SIM"; tooltip on hover/focus; cell click opens the attempt-timeline drawer. |
+| Class report | "Generate class report" | ✅ | ✅ | Modal with rendered Markdown (raw HTML disabled), model/tokens/cost/time footer, Download .md and Copy; the first line states the data is simulated (enforced in code). |
 
 Accessibility checks applied while reviewing: every status shows icon + word + colour; focus rings are visible
 (3 px accent); buttons are at least 44 px tall; the verdict region is `aria-live="polite"`; captions are always on

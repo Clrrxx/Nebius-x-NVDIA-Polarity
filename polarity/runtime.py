@@ -187,8 +187,13 @@ class Runtime:
             self.hub_client.enqueue(kind, payload, thumb)
 
     def on_help_created(self, help_req: HelpRequest) -> None:
-        """Called after a help request is stored (diagnosis is wired in by the TA intelligence layer)."""
+        """Called after a help request is stored: forward it to the hub and summarise it for the TA in the
+        background with Nemotron Super (the bench never waits on this)."""
         self.hub_send("help", help_req.model_dump())
+        if not help_req.is_simulated:
+            from polarity.engine.diagnosis import diagnose_async
+
+            diagnose_async(self, help_req)
 
     def help_payload(self, h: HelpRequest | None) -> dict[str, Any] | None:
         if h is None:

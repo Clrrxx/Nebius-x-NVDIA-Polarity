@@ -395,6 +395,7 @@ body.page-bench { font-size: var(--fs-md); }
 .hcard .row .btn { min-height: 40px; font-size: var(--fs-xs); }
 .hcard__who { font-weight: 750; color: var(--text); font-size: var(--fs-sm); }
 .hcard__body { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: var(--s3); align-items: start; }
+.hcard__body.no-thumb { grid-template-columns: minmax(0, 1fr); }
 .hcard__body img { width: 88px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: cover; }
 .hcard .summary { font-size: var(--fs-sm); }
 .hcard .action { font-size: var(--fs-xs); color: var(--text-muted); }
@@ -409,6 +410,7 @@ body.page-bench { font-size: var(--fs-md); }
 .heatmap th { font-weight: 650; color: var(--text-muted); text-align: left; padding: var(--s1) var(--s2); white-space: nowrap; }
 .heatmap thead th { text-align: center; font-size: 12px; white-space: normal; vertical-align: bottom; line-height: 1.25; }
 .heatmap thead th span { display: block; color: var(--text); font-size: var(--fs-xs); }
+.heatmap thead th .step-no { display: block; white-space: nowrap; font-size: 12px; }
 .heatmap tbody th { color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .heatmap tbody th small { color: var(--text-muted); font-weight: 500; margin-left: 4px; }
 .hm-cell { position: relative; height: 40px; width: 100%; min-width: 44px; border-radius: 6px; text-align: center; font-weight: 800; cursor: pointer; background: var(--surface-2); color: var(--text-muted); }
@@ -450,6 +452,7 @@ body.page-bench { font-size: var(--fs-md); }
 .timeline li { display: grid; grid-template-columns: 112px 1fr; gap: var(--s3); padding-bottom: var(--s3); border-bottom: 1px solid var(--border); }
 .timeline img { width: 112px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface-2); }
 .timeline .obs { font-size: var(--fs-xs); color: var(--text-muted); }
+.nophoto { width: 112px; aspect-ratio: 4 / 3; border-radius: 8px; border: 1px dashed var(--border); display: grid; place-items: center; text-align: center; font-size: 11px; color: var(--text-muted); padding: 4px; }
 
 .report { font-size: var(--fs-sm); line-height: 1.6; }
 .report h1, .report h2 { font-size: var(--fs-lg); margin: var(--s5) 0 var(--s2); }

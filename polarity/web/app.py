@@ -101,6 +101,16 @@ class LatencyBody(BaseModel):
     ms: int = Field(ge=0, le=120_000)
 
 
+class ReportBody(BaseModel):
+    lab_id: str | None = None
+
+
+class SeedBody(BaseModel):
+    students: int = Field(default=28, ge=1, le=60)
+    seed: int = 10
+    lab_id: str | None = None
+
+
 def create_app(runtime: Runtime | None = None) -> FastAPI:
     rt = runtime or Runtime()
     secret = secrets.token_bytes(16)
@@ -504,5 +514,57 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
             raise HTTPException(404, "Unknown session.")
         lab = rt.labs.get(session.lab_id)
         return {"session": session.model_dump(), "items": analytics.timeline(rt.db, lab, session_id, step_id)}
+
+    # ── TA intelligence: class report + seeded demo class ────────────────────────────────────
+
+    @app.post("/api/ta/report", dependencies=[Depends(require_ta)])
+    def ta_report(body: ReportBody) -> dict[str, Any]:
+        from polarity.engine.report import generate_report
+
+        lab_id = body.lab_id or (rt.engine.lab.id if rt.engine.lab else None) or \
+            (analytics.labs_with_sessions(rt.db) or [rt.config.env.default_lab])[0]
+        try:
+            return generate_report(rt, lab_id)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.get("/api/ta/reports", dependencies=[Depends(require_ta)])
+    def ta_reports() -> dict[str, Any]:
+        return {"items": [{"id": r.id, "lab_id": r.lab_id, "created_at": r.created_at, "model_id": r.model_id}
+                          for r in rt.db.list_reports()]}
+
+    @app.get("/api/ta/report/{report_id}.md", dependencies=[Depends(require_ta)])
+    def ta_report_md(report_id: str) -> Response:
+        report = rt.db.get_report(report_id)
+        if report is None:
+            raise HTTPException(404, "Unknown report.")
+        return Response(report.markdown, media_type="text/markdown; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="class-report-{report_id[:8]}.md"'})
+
+    @app.get("/api/ta/report/{report_id}", dependencies=[Depends(require_ta)])
+    def ta_report_get(report_id: str) -> dict[str, Any]:
+        from polarity.engine.report import report_payload
+
+        report = rt.db.get_report(report_id)
+        if report is None:
+            raise HTTPException(404, "Unknown report.")
+        return report_payload(report)
+
+    @app.post("/api/demo/seed", dependencies=[Depends(require_ta)])
+    def demo_seed(body: SeedBody) -> dict[str, Any]:
+        from polarity.demo.seed import seed_class
+
+        lab = rt.labs.get(body.lab_id or rt.config.env.default_lab)
+        if lab is None:
+            raise HTTPException(404, "Unknown lab.")
+        counts = seed_class(rt.db, lab, body.students, body.seed)
+        rt.bus.publish("hub_update", {"seeded": counts})
+        return counts
+
+    @app.delete("/api/demo/seed", dependencies=[Depends(require_ta)])
+    def demo_seed_clear() -> dict[str, Any]:
+        removed = rt.db.clear_simulated()
+        rt.bus.publish("hub_update", {"cleared": removed})
+        return {"removed_sessions": removed}
 
     return app
