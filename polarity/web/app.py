@@ -64,7 +64,7 @@ def icon(name: str, cls: str = "icon") -> Markup:
     return Markup(svg.replace("<svg ", f'<svg class="{cls}" ', 1)) if svg else Markup("")
 
 ENGINE_STATUS = {"no_session": 409, "completed": 409, "busy": 409, "bad_alias": 422, "unknown_lab": 404,
-                 "no_camera": 503, "empty_question": 422, "bad_step": 422}
+                 "no_camera": 503, "empty_question": 422, "bad_step": 422, "bad_image": 422}
 
 
 class StartBody(BaseModel):
@@ -103,6 +103,22 @@ class LatencyBody(BaseModel):
 
 class ReportBody(BaseModel):
     lab_id: str | None = None
+
+
+class PartBody(BaseModel):
+    part: str = Field(min_length=2, max_length=24)
+
+
+class LabSaveBody(BaseModel):
+    lab: dict[str, Any]
+    publish: bool = False
+
+
+class HubIngestBody(BaseModel):
+    kind: str
+    bench_id: str | None = None
+    payload: dict[str, Any]
+    thumb_b64: str | None = None
 
 
 class SeedBody(BaseModel):
@@ -566,5 +582,139 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
         removed = rt.db.clear_simulated()
         rt.bus.publish("hub_update", {"cleared": removed})
         return {"removed_sessions": removed}
+
+    # ── P1: board audit, part lookup, lab editor + compiler, hub ingest ─────────────────────────
+
+    @app.post("/api/audit")
+    def board_audit() -> dict[str, Any]:
+        from polarity.engine.board_audit import run_audit
+
+        return run_audit(rt)
+
+    @app.post("/api/parts/lookup")
+    def parts_lookup(body: PartBody) -> JSONResponse:
+        from polarity.engine.parts import PartsUnavailable, lookup
+
+        try:
+            return JSONResponse(lookup(rt, body.part))
+        except PartsUnavailable as exc:
+            return JSONResponse({"error": "parts_unavailable", "message": str(exc)}, status_code=503)
+        except ValueError as exc:
+            return JSONResponse({"error": "bad_part", "message": str(exc)}, status_code=422)
+
+    @app.get("/labs/editor", response_class=HTMLResponse)
+    def editor_page(request: Request) -> HTMLResponse:
+        if not is_ta(request):
+            return page(request, "pin.html", "pin", "TA sign-in", gate_title="Lab editor")
+        return page(request, "editor.html", "editor", "Lab editor")
+
+    @app.get("/api/labs")
+    def labs_list() -> dict[str, Any]:
+        return {"items": rt.labs.list()}
+
+    @app.get("/api/labs/{lab_id}")
+    def labs_get(lab_id: str) -> dict[str, Any]:
+        lab = rt.labs.get(lab_id)
+        if lab is None:
+            raise HTTPException(404, "Unknown lab.")
+        published = (rt.config.paths.labs / f"{lab_id}.yaml").exists()
+        return {"lab": lab.model_dump(mode="json"), "source": "published" if published else "draft"}
+
+    @app.put("/api/labs/{lab_id}", dependencies=[Depends(require_ta)])
+    def labs_put(lab_id: str, body: LabSaveBody) -> JSONResponse:
+        from polarity.engine.lab_compiler import validate_lab
+
+        lab, errors = validate_lab(body.lab)
+        if lab is None:
+            return JSONResponse({"error": "invalid_lab", "message": errors}, status_code=422)
+        if not lab.id.replace("_", "").replace("-", "").isalnum():
+            return JSONResponse({"error": "invalid_lab", "message": "id: use letters, digits, _ or -"}, status_code=422)
+        path = rt.labs.save(lab, publish=body.publish)
+        if lab.id != lab_id and body.publish:
+            stale = rt.config.paths.drafts / f"{lab_id}.yaml"
+            if stale.exists():
+                stale.unlink()
+        rt.bus.publish("labs_changed", {"lab_id": lab.id, "published": body.publish})
+        return JSONResponse({"ok": True, "lab_id": lab.id, "published": body.publish, "path": path.name})
+
+    @app.post("/api/labs/compile", dependencies=[Depends(require_ta)])
+    async def labs_compile(files: list[UploadFile] | None = File(default=None), upload_id: str | None = Form(default=None),
+                           confirm: bool = Form(default=False), sample: bool = Form(default=False)) -> JSONResponse:
+        from polarity.engine import lab_compiler as lc
+
+        try:
+            if upload_id is None:
+                if sample:
+                    path = rt.config.paths.labs / "samples" / "lab1_handout.pdf"
+                    if not path.exists():
+                        path = rt.config.paths.root / "labs" / "samples" / "lab1_handout.pdf"
+                    items = [(path.name, path.read_bytes())]
+                else:
+                    items = [(f.filename or "upload", await f.read()) for f in (files or [])]
+                upload = await run_in_threadpool(lc.create_upload, rt.config.paths.media, items)
+            else:
+                upload = lc.load_upload(rt.config.paths.media, upload_id)
+        except lc.CompileError as exc:
+            return JSONResponse({"error": "compile", "message": str(exc)}, status_code=422)
+        pages = [f"/media/compile/{upload.id}/{p.name}" for p in upload.pages]
+        if not confirm:
+            return JSONResponse({"upload_id": upload.id, "pages": pages, "estimate": lc.estimate(rt.config, len(pages))})
+
+        def work() -> None:
+            try:
+                result = lc.compile_upload(rt, upload, progress=lambda p: rt.bus.publish("compile_progress", {**p, "upload_id": upload.id}))
+                rt.bus.publish("compile_done", {"upload_id": upload.id, **result})
+            except Exception as exc:  # noqa: BLE001 - reported to the editor, never crashes the server
+                log.exception("lab compile failed")
+                rt.bus.publish("compile_failed", {"upload_id": upload.id, "message": str(exc)})
+
+        import threading
+
+        threading.Thread(target=work, name="lab-compile", daemon=True).start()
+        return JSONResponse({"upload_id": upload.id, "pages": pages, "started": True})
+
+    @app.post("/api/hub/ingest", dependencies=[Depends(require_ta)])
+    def hub_ingest(body: HubIngestBody) -> dict[str, Any]:
+        import base64
+        import json as _json
+
+        import numpy as np
+
+        from polarity.models.session import Attempt, HelpRequest, Session
+
+        if rt.config.role_override != "hub":
+            raise HTTPException(409, "This server is not running with --role hub.")
+        if body.kind == "session":
+            s = Session.model_validate(body.payload)
+            rt.db.create_session(s.student_alias, s.lab_id, s.bench_id or body.bench_id, session_id=s.id,
+                                 started_at=s.started_at, is_simulated=s.is_simulated)
+            if s.completed_at:
+                rt.db.complete_session(s.id, s.completed_at)
+        elif body.kind == "attempt":
+            a = Attempt.model_validate(body.payload)
+            thumb = None
+            if body.thumb_b64:
+                data = np.frombuffer(base64.b64decode(body.thumb_b64), np.uint8)
+                img = cv2.imdecode(data, cv2.IMREAD_COLOR)
+                if img is not None:
+                    thumb = rt.media.save_image(a.session_id, f"{a.id}_warped.jpg", img)
+            rt.db.add_attempt(a.model_copy(update={"raw_image_path": None, "audio_path": None, "warped_image_path": thumb}))
+        elif body.kind == "help":
+            h = HelpRequest.model_validate(body.payload)
+            rt.db.add_help(h.session_id, h.step_id, h.trigger, help_id=h.id, created_at=h.created_at,
+                           summary=_json.loads(h.summary_json) if h.summary_json else None, status=h.status,
+                           resolved_at=h.resolved_at, is_simulated=h.is_simulated)
+            rt.bus.publish("help_created" if h.status == "open" else "help_updated", rt.help_payload(rt.db.get_help(h.id)))
+        else:
+            raise HTTPException(422, "Unknown record kind.")
+        rt.bus.publish("hub_update", {"kind": body.kind, "bench_id": body.bench_id})
+        return {"ok": True}
+
+    @app.get("/api/hub/status")
+    def hub_status() -> dict[str, Any]:
+        client = rt.hub_client
+        return {"role": rt.config.role_override, "hub_url": rt.config.hub_url,
+                "pending": client.pending() if client else 0, "sent": client.sent if client else 0,
+                "last_error": client.last_error if client else None}
 
     return app

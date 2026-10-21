@@ -282,3 +282,28 @@ class DemoCameraSource:
         return {"source": self.source_name, "index": None, "connected": img is not None, "error": None,
                 "resolution": [img.shape[1], img.shape[0]] if img is not None else None, "fps": None,
                 "scene": {"step": step, "label": label}}
+
+
+class NullCameraSource:
+    """No camera (hub role: the TA laptop only aggregates benches)."""
+
+    source_name = "none"
+
+    def __init__(self) -> None:
+        self.motion = MotionMonitor()
+
+    def start(self) -> None:
+        pass
+
+    def stop(self) -> None:
+        pass
+
+    def latest(self) -> Frame | None:
+        return None
+
+    def sharpest_recent(self, seconds: float = 1.0) -> Frame | None:
+        return None
+
+    def status(self) -> dict[str, Any]:
+        return {"source": "none", "index": None, "connected": False, "error": "hub mode: no camera", "resolution": None,
+                "fps": None}

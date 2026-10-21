@@ -81,6 +81,15 @@ def create_app() -> FastAPI:
                     if part.get("type") == "text":
                         text += part.get("text", "") + "\n"
         reasoning = None if thinking_off or "/no_think" in text else "Let me think about this..."
+        tool_msgs = [m for m in messages if m.get("role") == "tool"]
+        if tool_msgs and not body.get("tools"):
+            # Second leg of a native tool call: summarise ONLY the tool results (plus one invented URL that the
+            # client must drop, to prove it never cites sources Tavily did not return).
+            found = json.loads(tool_msgs[0].get("content") or "[]")
+            urls = [r.get("url") for r in found if r.get("url")]
+            return _completion(model, json.dumps({"summary": "NE555 timer: pin 1 GND, pin 8 VCC.",
+                                                  "pinout": [{"pin": "1", "name": "GND"}, {"pin": "8", "name": "VCC"}],
+                                                  "sources": urls + ["https://invented.example/fake"]}), reasoning)
         if model in (FLAKY, BADJSON):
             if model == BADJSON and "Return ONLY the corrected JSON" not in text:
                 return _completion(model, "Sure! Here is my answer: it looks fine.", reasoning)

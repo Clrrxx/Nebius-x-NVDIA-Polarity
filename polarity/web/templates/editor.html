@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block body %}
+{% set topbar_title = "Lab editor" %}{% set topbar_sub = "Turn any lab sheet into checkable steps" %}
+{% include "_topbar.html" %}
+<main class="editor" id="main">
+  <aside class="card editor__labs" aria-labelledby="labs-title">
+    <div class="card__head">{{ icon("report") }}<h2 id="labs-title">Labs</h2></div>
+    <ul class="lablist" id="lablist"></ul>
+    <hr class="sep">
+    <div class="stack">
+      <h3 class="eyebrow">New lab from a handout</h3>
+      <label class="btn btn--block" for="upload-input">{{ icon("upload") }} Upload lab sheet (PDF or photos)</label>
+      <input id="upload-input" type="file" accept=".pdf,image/*" multiple hidden>
+      <button class="btn btn--ghost btn--block" id="sample-btn" type="button">{{ icon("spark") }} Try the sample handout</button>
+      <p class="muted" style="font-size:13px">Pages are read by Nemotron Nano Omni, then Nemotron Super drafts verifiable steps. Up to 10 pages. You review everything before it is published.</p>
+    </div>
+  </aside>
+
+  <section class="editor__main stack">
+    <div class="card" id="compile-card" hidden>
+      <div class="card__head">{{ icon("upload") }}<h2>Compile</h2><div class="spacer"></div><span class="muted" id="estimate" style="font-size:14px"></span></div>
+      <div class="pages" id="pages"></div>
+      <ol class="progress-list" id="progress" aria-live="polite"></ol>
+      <div class="row"><div class="spacer"></div><button class="btn btn--primary" id="compile-btn" type="button">{{ icon("spark") }} Compile with Nemotron</button></div>
+    </div>
+
+    <div class="card" id="form-card" hidden>
+      <div class="card__head">
+        {{ icon("board") }}<h2 id="form-title">Lab</h2>
+        <span class="draft-badge" id="draft-badge" hidden>{{ icon("fix") }} AI-drafted — review before use</span>
+        <div class="spacer"></div>
+        <button class="btn" id="save-btn" type="button">Save draft</button>
+        <button class="btn btn--primary" id="publish-btn" type="button">{{ icon("pass") }} Publish</button>
+      </div>
+      <div class="form-errors" id="form-errors" role="alert" hidden></div>
+      <form class="labform stack" id="labform" novalidate></form>
+    </div>
+
+    <div class="card empty" id="editor-empty">
+      {{ icon("report") }}<strong>Pick a lab to edit, or upload a lab sheet</strong>
+      <span>Every check must be something a camera above the board can see.</span>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 
 from polarity.config import Config, get_config
-from polarity.edge.camera import CameraService, DemoCameraSource
+from polarity.edge.camera import CameraService, DemoCameraSource, NullCameraSource
 from polarity.edge.quality import chips
 from polarity.engine.session_engine import SessionEngine
 from polarity.engine.verifier import Verifier
@@ -148,7 +148,9 @@ class Runtime:
         self.bus = EventBus()
         self.router = ModelRouter(self.config, recorder=self.db, on_cost=self._on_cost)
         env = self.config.env
-        if env.camera_source == "demo":
+        if self.config.role_override == "hub":
+            self.camera: Any = NullCameraSource()
+        elif env.camera_source == "demo":
             self.camera: Any = DemoCameraSource(p.demo, env.default_lab if (p.demo / env.default_lab).exists() else "lab1")
         else:
             cs = self.config.settings.camera
@@ -166,6 +168,11 @@ class Runtime:
             return
         self.camera.start()
         self.monitor.start()
+        if self.config.role_override == "bench" and self.config.hub_url and self.hub_client is None:
+            from polarity.hub.client import HubClient
+
+            self.hub_client = HubClient(self, self.config.hub_url)
+            self.hub_client.start()
         self.started = True
 
     def stop(self) -> None:

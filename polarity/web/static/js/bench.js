@@ -190,6 +190,10 @@ function renderVerdict(v, payload, silent = false) {
   if (p && p.student_answer) {
     body.append(el("div", { class: "bubble" }, el("div", { class: "who", text: "Answer to your question" }), el("div", { text: p.student_answer })));
   }
+  if (p && cfg.tavily_enabled && (p.parts_seen || []).length) {
+    body.append(el("div", { class: "row wrap" }, ...p.parts_seen.slice(0, 3).map((part) =>
+      el("button", { class: "btn", type: "button", on: { click: () => lookupPart(part) } }, icon("chip"), `I can see an ${part} — want its pinout?`))));
+  }
   const passed = v.status === "pass" || v.status === "pass_partial";
   // The dock holds the next action: "Next step" after a pass, "Check my step" otherwise.
   setNextMode(passed && !silent ? { finished: !!(payload && payload.completed) } : null);
@@ -230,7 +234,7 @@ function renderAnswer(data) {
   const card = el("article", { class: "card stack" },
     el("div", { class: "row" }, icon("mic"), el("strong", { text: "You asked" }), el("span", { class: "muted", text: data.question ? `“${data.question}”` : "(voice clip)" })),
     el("div", { class: "bubble" }, el("div", { class: "who", text: "Answer" }), el("div", { text: data.answer })),
-    data.parts && data.parts.length ? el("div", { class: "row wrap" }, ...data.parts.map((part) =>
+    cfg.tavily_enabled && data.parts && data.parts.length ? el("div", { class: "row wrap" }, ...data.parts.map((part) =>
       el("button", { class: "btn", type: "button", on: { click: () => lookupPart(part) } }, icon("chip"), `${part} pinout`))) : null,
     el("div", { class: "meta", style: "border:0;padding:0" }, el("span", { text: `model ${data.model_id}` }), el("span", { text: `${data.latency_ms} ms` })));
   showResult();

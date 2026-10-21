@@ -4,7 +4,8 @@ Overrides (all optional):
 - ``POLARITY_HOME``: repository root (defaults to the folder containing the ``polarity`` package);
 - ``POLARITY_DATA_DIR``: runtime data folder (defaults to ``<root>/data``); tests point this at a temp dir;
 - ``POLARITY_ENV_FILE``: the dotenv file to read (defaults to ``<root>/.env``);
-- ``POLARITY_DOCS_DIR``: where generated reports are written (defaults to ``<root>/docs``).
+- ``POLARITY_DOCS_DIR``: where generated reports are written (defaults to ``<root>/docs``);
+- ``POLARITY_LABS_DIR``: published lab YAML files (defaults to ``<root>/labs``).
 """
 
 from __future__ import annotations
@@ -41,7 +42,8 @@ def config_dir() -> Path:
 
 
 def labs_dir() -> Path:
-    return repo_root() / "labs"
+    override = os.environ.get("POLARITY_LABS_DIR")  # tests publish compiled labs into a temp copy
+    return Path(override).expanduser().resolve() if override else repo_root() / "labs"
 
 
 def capabilities_file() -> Path:

@@ -75,7 +75,10 @@ def diagnose(rt: Any, help_req: HelpRequest) -> dict[str, Any]:
         log.warning("diagnosis failed: %s", exc)
         summary = {"unavailable": True, "reason": str(exc)}
     rt.db.update_help_summary(help_req.id, summary)
-    payload = rt.help_payload(rt.db.get_help(help_req.id))
+    updated = rt.db.get_help(help_req.id)
+    if updated is not None:
+        rt.hub_send("help", updated.model_dump())  # the hub's TA card gets the summary too
+    payload = rt.help_payload(updated)
     rt.bus.publish("help_updated", payload)
     return summary
 

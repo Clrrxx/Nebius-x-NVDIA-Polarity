@@ -18,8 +18,13 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pa
     docs = tmp_path / "docs"
     data.mkdir()
     docs.mkdir()
+    labs = tmp_path / "labs"
+    import shutil
+
+    shutil.copytree(Path(__file__).resolve().parents[1] / "labs", labs)
     monkeypatch.setenv("POLARITY_DATA_DIR", str(data))
     monkeypatch.setenv("POLARITY_DOCS_DIR", str(docs))
+    monkeypatch.setenv("POLARITY_LABS_DIR", str(labs))
     monkeypatch.setenv("POLARITY_ENV_FILE", str(tmp_path / "missing.env"))
     monkeypatch.setenv("POLARITY_MOCK_MODELS", "1")
     monkeypatch.setenv("POLARITY_MOCK_LATENCY_MS", "0")
