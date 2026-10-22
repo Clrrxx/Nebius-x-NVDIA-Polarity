@@ -14,21 +14,24 @@ three answer `GET /v1/models` with HTTP 401, so there is no way to tell which on
 host. **Suggestion.** Publish one canonical base URL on every page and in the console, and have legacy hosts return
 a `Deprecation`/`Link` header pointing to it.
 
-## 2. Model-ID case sensitivity (To confirm)
+## 2. Model-ID case sensitivity (Not seen on our account)
 
 **What happened.** Team members reported that model IDs in completion requests must be lowercase, while `/v1/models`
 can list mixed-case IDs (for example `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`). **Impact.** We had to implement
 "exact ID first, lowercase on not-found" and record the working form per model. **Suggestion.** Match model IDs
-case-insensitively, or document the rule next to the `/v1/models` reference with one example.
+case-insensitively, or document the rule next to the `/v1/models` reference with one example. **Phase 0
+(2026-10-22):** all four IDs worked exactly as `/v1/models` lists them.
 
-## 3. Multimodal content-part formats for Nano Omni (To confirm)
+## 3. Multimodal content-part formats for Nano Omni (Observed)
 
 **What happened.** We could not find documentation of which audio content-part shape Nemotron 3 Nano Omni accepts
 on Token Factory (`input_audio` with base64 data vs `audio_url` with a data URL), whether image and audio can share
 one request, or the video size and length limits. **Impact.** Phase 0 has to probe every variant and verify
 understanding with test assets, and the app needs four audio fallbacks. **Suggestion.** A per-model "accepted
 content parts" table with one working request each (image, audio, image+audio, video), including size and
-duration limits.
+duration limits. **Phase 0 (2026-10-22):** our account lists no Nemotron Nano Omni model, and the vision model
+rejects both `input_audio` and `audio_url` with HTTP 422 ("expected tags: 'text', 'image_url', 'video_url'"). Images
+and video work. We fell back to Nemotron 3.5 Super VL plus browser speech recognition.
 
 ## 4. Structured output support per model (To confirm)
 
@@ -38,13 +41,16 @@ Pydantic validation plus one repair call, and downgrade `json_schema` → `json_
 rejected. **Suggestion.** List structured-output support and the supported keyword subset per model in the model
 catalogue.
 
-## 5. Turning reasoning off for Nemotron 3 (To confirm)
+## 5. Turning reasoning off for Nemotron 3 (Observed)
 
 **What happened.** For latency-sensitive calls we want thinking off. It is not documented whether Token Factory
 honours `chat_template_kwargs: {"enable_thinking": false}` (via `extra_body`) or a `/no_think` system prefix, or
 where reasoning text appears (`reasoning_content` vs `<think>` in `content`). **Impact.** We probe both switches,
 strip `<think>` blocks, and raise `max_tokens` when we can't turn thinking off, so the answer isn't truncated.
 **Suggestion.** Document the supported switch and response field for each reasoning model, with an example.
+**Phase 0 (2026-10-22):** `chat_template_kwargs: {"enable_thinking": false}` works on Nano 30B, Super and Super VL,
+and reasoning arrives in `reasoning_content`. Without the switch, Super VL spent a 400-token budget thinking and
+returned empty content (`finish_reason=length`).
 
 ## 6. Prices are not machine-readable (Observed)
 
@@ -60,17 +66,21 @@ This was clear in the rules, but easy to miss when exploring the console. **Impa
 Token Factory calls from the bench. **Suggestion.** Show which products the active credit applies to directly in the
 console's billing banner.
 
-## 8. Tool calling on Nemotron 3 Super (To confirm)
+## 8. Tool calling on Nemotron 3 Super (Observed: works)
 
 **What happened.** We could not confirm whether OpenAI-style `tools` / `tool_calls` are enabled for Super on Token
 Factory. **Impact.** The Tavily agent has a native path and a manual fallback. **Suggestion.** Mark tool-calling support
-per model in the catalogue.
+per model in the catalogue. **Phase 0 (2026-10-22):** native `tools` / `tool_calls` work on Super 120B (T11).
 
-## Live findings from Phase 0 (TODO-TEAM after running verify)
+## Live findings from Phase 0 (2026-10-22)
 
-- Latency per role (from `docs/PHASE0_REPORT.md`): TODO-TEAM
-- Combined image + audio result (T8): TODO-TEAM
-- Anything that surprised us (errors, rate limits, timeouts): TODO-TEAM
+- Latency per role (short text smoke test): perception 2278 ms, fast_text 866 ms, reasoning 895 ms, deep 675–779 ms.
+  Image question 1085 ms, video question 862 ms.
+- Combined image + audio result (T8): REJECTED, HTTP 422 (audio content parts are not accepted).
+- Surprises: the console URL (`https://tokenfactory.nebius.com/`) pasted as the base URL returns a web page, and the
+  OpenAI SDK fails with an unrelated `AttributeError` instead of a clear message; the us-central1 host lists a
+  different model set with no vision model for our account; there is no Nano Omni in `/v1/models`. No rate limits or
+  timeouts in a full run (cost about $0.001).
 
 ## Our own experience (TODO-TEAM)
 

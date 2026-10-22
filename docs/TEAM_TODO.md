@@ -1,35 +1,51 @@
 # Team to-do (things only humans can do)
 
-Today is Wed 21 Oct 2026 (SGT). Hard deadline: **Sat 31 Oct 2026, 01:00 SGT** (Fri 30 Oct, 10:00 PDT).
+Updated Thu 22 Oct 2026 (SGT). Hard deadline: **Sat 31 Oct 2026, 01:00 SGT** (Fri 30 Oct, 10:00 PDT).
 Internal deadline: **Thu 29 Oct 23:59 SGT**.
+
+## Done
+
+- [x] Token Factory key in `.env.local` (committed and shared; the app reads it). Phase 0 passed live on 22 Oct:
+  `docs/PHASE0_REPORT.md`, README model table.
+- [x] Real prices in `config/pricing.yaml`.
+- [x] First 12 rig photos in `data/real_photos/`. The board locator handles their hand-placed marker layout.
 
 ## Ordered checklist
 
-- [ ] **Get the Token Factory key into `.env`** and run `scripts/verify_mac.sh` (or `scripts\verify_windows.bat`).
-  This fills in `docs/PHASE0_REPORT.md`, `data/capabilities.json` and the README model table. Commit the report.
-- [ ] **Copy real prices** from the Token Factory console into `config/pricing.yaml` (the budget guard needs them).
+- [ ] **Every teammate: pull, run setup, run verify once.** macOS: `scripts/setup_mac.sh`, `scripts/verify_mac.sh`,
+  `scripts/run_mac.sh`. Windows: the matching `.bat` files. `verify` writes this machine's `data/capabilities.json`
+  (gitignored) and also rewrites `docs/PHASE0_REPORT.md` and the README model table. Don't commit those two unless the
+  results really changed (`git checkout -- README.md docs/PHASE0_REPORT.md`).
+- [ ] **Before the repo goes public: rotate the key and remove `.env.local` from git history.** It holds the shared
+  key. After that, everyone keeps the new key in their own uncommitted `.env`.
+- [ ] **Change `TA_PIN`** before any demo or recording (in `.env.local`, or `TA_PIN=… scripts/run_mac.sh`).
 - [ ] Optional: get a `TAVILY_API_KEY` (Best Use of Tavily bonus) and try `NE555` from the bench.
-- [ ] **Change `TA_PIN`** in `.env` before any demo or recording.
-- [ ] **Print the marker mat** (`assets/print/marker_mat_A4.pdf`) at 100% and check the 1 cm bar with a ruler.
-- [ ] **Buy or collect the Lab 1 kit**: half-size breadboard, 2×AA holder with switch, red LED, 100 Ω resistor,
-  6×6 mm push button, jumpers.
-- [ ] **Build Lab 1 once for real** and confirm the LED lights; adjust `labs/lab1.yaml` if your kit differs.
-- [ ] **Build the rig**: camera 25–35 cm above the board, lamp or ring light, mat taped down. Run
-  `python -m polarity calibrate` and paste the printed thresholds into `config/settings.yaml`.
+- [ ] **Decide the demo lab and match the kit.** Lab 1 is a 3 V battery pack, push button and red LED on a
+  breadboard; `lab1_5v` is the same circuit on a 5 V supply. The rig photos show a full-size breadboard, a blue LED,
+  a resistor, jumpers and an Arduino UNO, but no battery pack or push button yet. Either get the Lab 1 parts (2×AA
+  holder with switch, 6×6 mm push button, red LED, 100 Ω resistor), or set `DEFAULT_LAB=lab1_5v`, power the rails
+  from the UNO's 5V and GND pins, add a push button and a 220 Ω resistor, and set `led_check.colour: blue` in the lab
+  file if the LED stays blue. Build it once for real and fix the wording or strip numbers in the lab file.
+- [ ] **Build the rig**: camera 25–35 cm above the board, a lamp, the four markers taped at the board's corners (any
+  order and rotation; the whole board inside the rectangle they outline). Check the layout with
+  `python -m polarity locate <photo>` or the bench's "What the AI sees" view, then run `python -m polarity calibrate`
+  and paste the printed thresholds into `config/settings.yaml`.
 - [ ] **Confirm the TA ratio with a real SIT lab TA** and get a one-line quote. Replace every `{{TA_RATIO_CONFIRMED}}`
   (README, DEVPOST, DEMO_SCRIPT). Do not state a ratio before this.
 - [ ] **Capture the evaluation dataset**: at least 5 photos per (step, label) with varied lighting, about 80–120 photos
   (~45 min): `python -m polarity capture --step s3 --label E_LED_REVERSED` …, plus `--label _baseline` for s6.
 - [ ] **Run the real eval** (`python -m polarity eval`) and tune in the order in docs/EVAL_RESULTS.md, logging each
-  iteration. Only these numbers may be quoted anywhere.
+  iteration. Only these numbers may be quoted anywhere. Watch false passes closely: one live check passed a
+  synthetic shorted-resistor board.
 - [ ] **Record the demo video** following `docs/DEMO_SCRIPT.md` (≥ 60 s continuous rig footage; real model ID on
   screen; simulated banner visible on the TA segment).
 - [ ] Upload the video to YouTube (**public**), put the link in the README (`{{YOUTUBE_URL}}`) and Devpost.
 - [ ] Replace the README hero screenshot with a GIF of the real rig; add a rig photo; fill in the Team table.
-- [ ] Fill in the `TODO-TEAM` / `[VERIFY]` items in `docs/DEVPOST.md`, `docs/FEEDBACK.md` and the README's
-  "Where Token Factory accelerated our workflow".
-- [ ] Push to GitHub (public repo) and check that CI is green on Linux, macOS and Windows.
-- [ ] Submit on Devpost.
+- [ ] Fill in the `TODO-TEAM` / `[VERIFY]` items in `docs/DEVPOST.md` (it still says Nano Omni and 1024×768; the real
+  perception model is Nemotron 3.5 Super VL and audio was rejected), `docs/DEMO_SCRIPT.md` (model list),
+  `docs/FEEDBACK.md` ("Our own experience") and the README's "Where Token Factory accelerated our workflow".
+- [ ] Check that CI is green on Linux, macOS and Windows (GitHub → Actions).
+- [ ] Make the repo public (after the key is rotated and purged) and submit on Devpost.
 
 ## Timeline
 

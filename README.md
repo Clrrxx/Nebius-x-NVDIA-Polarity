@@ -27,8 +27,8 @@ struggling with.
 ## What it does
 
 - **Checks each step, not just the end result.** A camera above the breadboard and a deterministic state machine
-  walk the student through the lab one step at a time. Nemotron Nano Omni returns schema-validated judgments per
-  check; code, not the model, decides PASS / FIX / CAN'T TELL.
+  walk the student through the lab one step at a time. A Nemotron vision model returns schema-validated judgments
+  per check; code, not the model, decides PASS / FIX / CAN'T TELL.
 - **Says "I can't tell" honestly.** An on-device quality gate (focus, light, glare, board found, steadiness)
   answers before any cloud call. The model must mark checks `not_visible` instead of guessing, and a second, closer
   look runs when confidence is borderline. A CAN'T TELL always comes with one specific retake instruction.
@@ -47,12 +47,14 @@ struggling with.
 What happens when a student presses **Check** (Space):
 
 1. The camera thread hands over the sharpest frame from the last second.
-2. ArUco markers on a printed mat give a homography; the board is warped to a 1024×768 top-down view.
+2. Four ArUco markers (the printed mat, or hand-placed at the board's corners in any order) give a homography; the
+   board is warped to a top-down view (1024×768 for the mat; other layouts keep their measured shape, e.g. 1024×352).
 3. The quality gate scores focus, brightness, glare, markers and motion. If it fails: CAN'T TELL with a specific
    retake instruction, no cloud call.
 4. On the power-test step, the LED detector compares the warped frame with the baseline captured when the step began.
-5. One request goes to **Nemotron Nano Omni** on Token Factory: the step spec (checks, common mistakes, hint level),
-   the warped image and, if the student spoke, their voice clip.
+5. One request goes to the perception model on Token Factory (**Nemotron 3.5 Super VL** on our account): the step
+   spec (checks, common mistakes, hint level), the warped image and, if the student spoke, their question (transcribed
+   in the browser; a model that passes the audio test gets the voice clip itself).
 6. The reply is validated against a Pydantic schema (one repair call if needed); a deterministic policy turns it
    into PASS / PASS-with-a-double-check / FIX / CAN'T TELL. Borderline confidence triggers a zoomed second look.
 7. Strong physical LED evidence overrides the model on the power test.
@@ -71,17 +73,19 @@ retries with backoff, the budget guard, and logs cost per call.
 <!-- MODELS:START -->
 | Role | Exact model ID on Token Factory | Case used | Measured latency (Phase 0) | Used for |
 |---|---|---|---|---|
-| `perception` | PENDING: run `python -m polarity verify` with a key | — | — | Step verification (top-down photo ± the student's voice clip), voice Q&A, reading lab-sheet pages, printed part markings |
-| `fast_text` | PENDING | — | — | Intent of a typed question; shortening long spoken feedback |
-| `reasoning` | PENDING | — | — | TA help-request summaries, assembling compiled labs, the Tavily part-lookup agent |
-| `deep` | PENDING | — | — | End-of-class report for the TA |
+| `perception` | `nvidia/Nemotron-3.5-Super-VL` | exact | 2278 ms | Step verification (top-down photo ± the student's voice clip), voice Q&A, reading lab-sheet pages, printed part markings |
+| `fast_text` | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | exact | 866 ms | Intent of a typed question; shortening long spoken feedback |
+| `reasoning` | `nvidia/nemotron-3-super-120b-a12b` | exact | 895 ms | TA help-request summaries, assembling compiled labs, the Tavily part-lookup agent |
+| `deep` | `nvidia/Nemotron-3-Ultra-550b-a55b` | exact | 779 ms | End-of-class report for the TA |
 
-Model IDs, latencies and capabilities are filled in automatically by `python -m polarity verify`
-(evidence in [docs/PHASE0_REPORT.md](docs/PHASE0_REPORT.md)).
+Verified 2026-10-22T12:27:07+08:00 at `https://api.tokenfactory.nebius.com/v1/` · combined image + audio: `REJECTED` · JSON mode: `json_schema` · thinking control: `chat_template_kwargs` · tools: `native` · audio mode: `browser_stt` (full evidence: [docs/PHASE0_REPORT.md](docs/PHASE0_REPORT.md)).
 <!-- MODELS:END -->
 
-**Why each model.** Nemotron 3 **Nano Omni** reads images *and* audio in one request, so a spoken question can ride
-along with the photo being checked, and it reads lab-sheet pages for the compiler. **Nano 30B** is the cheap text
+**Why each model.** We designed perception around Nemotron 3 **Nano Omni** (image *and* audio in one request), but our
+Token Factory account lists no Omni model and rejects audio content parts (HTTP 422 in Phase 0). So perception runs on
+**Nemotron 3.5 Super VL**, which checks the board photo and reads lab-sheet pages for the compiler, and the browser
+turns speech into text. If an Omni model appears, re-run `verify` without the `POLARITY_MODEL_PERCEPTION` override;
+the audio modes switch on only if its audio test passes. **Nano 30B** is the cheap text
 model for small jobs. **Super 120B** reasons over a student's attempt history for the TA, structures compiled labs,
 and drives the Tavily tool. **Ultra** writes the end-of-class report with thinking enabled; it falls back to Super if
 unavailable.
@@ -97,7 +101,7 @@ client.chat.completions.create(
         {"role": "user", "content": [
             {"type": "text", "text": json.dumps(step_spec)},              # checks, common mistakes, hint level
             {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}},       # warped board
-            {"type": "input_audio", "input_audio": {"data": "<wav b64>", "format": "wav"}},  # optional question
+            {"type": "input_audio", "input_audio": {"data": "<wav b64>", "format": "wav"}},  # only if Phase 0 proved audio
         ]},
     ],
     response_format={"type": "json_schema", "json_schema": {"name": "PerceptionVerdict", "strict": True,
@@ -150,6 +154,13 @@ check the 1 cm bar with a ruler. Regenerate it with `python -m polarity markers`
 breadboard, a 2×AA holder with a switch, a red LED, a 100 Ω resistor, a 6×6 mm push button and jumpers. A 5 V USB
 variant is in `labs/lab1_5v.yaml`.
 
+Hand-placed markers work too. Print the four markers (ids 0–3 from the mat, all the same size), put one at each
+corner of the board in any order and any rotation, and keep the whole board inside the rectangle they outline. The
+board's real shape is measured from the markers, so a full-size breadboard is fine; a board that is taller than wide
+is turned to landscape (`board.portrait_turn` in `config/settings.yaml` picks the direction). Check a layout from
+photos with `python -m polarity locate <photo or folder>`. [data/real_photos/](data/real_photos/) has the team's
+first rig photos.
+
 <!-- TODO-TEAM: photo of the rig and the marker mat here -->
 
 ## Quick start — macOS
@@ -200,6 +211,8 @@ real Nemotron judgments without hardware, keep `CAMERA_SOURCE=demo` and leave `P
 
 ## Configuration reference
 
+Settings come from `.env`, then `.env.local` (a value there wins), and real environment variables win over both.
+
 | `.env` key | Default | Meaning |
 |---|---|---|
 | `NEBIUS_API_KEY` | — | Token Factory key (never printed in full, never committed) |
@@ -222,8 +235,8 @@ Thresholds (quality gate, LED detector, decision policy, timeouts, retries, esca
 prices go in [config/pricing.yaml](config/pricing.yaml). Copy them from the Token Factory console; until then cost
 shows "n/a".
 
-Commands: `verify`, `doctor`, `run`, `devices`, `markers`, `calibrate`, `capture`, `eval`, `seed-demo`, `purge`,
-`render-synthetic` (`python -m polarity <command> --help`).
+Commands: `verify`, `doctor`, `run`, `devices`, `markers`, `locate`, `calibrate`, `capture`, `eval`, `seed-demo`,
+`purge`, `render-synthetic` (`python -m polarity <command> --help`).
 
 ## Evaluation results
 

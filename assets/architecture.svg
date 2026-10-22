@@ -33,7 +33,7 @@
 
   <rect x="264" y="166" width="330" height="62" rx="10" class="edge"/>
   <text x="282" y="192" class="h">BoardLocator</text>
-  <text x="282" y="212" class="s">ArUco mat → homography → 1024×768 top-down warp</text>
+  <text x="282" y="212" class="s">ArUco markers → homography → top-down warp</text>
   <path d="M429 134 V160" class="line" marker-end="url(#ah)"/>
 
   <rect x="44" y="262" width="180" height="62" rx="10" class="edge"/>
@@ -81,8 +81,8 @@
   <text x="914" y="52" class="ctag">NEBIUS TOKEN FACTORY</text>
   <text x="914" y="72" class="s">OpenAI-compatible API · NVIDIA Nemotron 3</text>
   <rect x="914" y="92" width="322" height="100" rx="10" class="cloud"/>
-  <text x="932" y="118" class="h">Nemotron 3 Nano Omni</text>
-  <text x="932" y="140" class="s">perception: board photo + voice in one call</text>
+  <text x="932" y="118" class="h">Nemotron 3.5 Super VL</text>
+  <text x="932" y="140" class="s">perception: board photo + question (as text)</text>
   <text x="932" y="160" class="s">every Check / Ask · lab-sheet pages</text>
   <text x="932" y="180" class="s">JSON verdicts validated by Pydantic</text>
   <rect x="914" y="206" width="322" height="80" rx="10" class="cloud"/>

@@ -11,7 +11,7 @@ on-device quality gate has accepted the image.
 flowchart TB
   subgraph Bench["Bench computer (edge)"]
     CAM[USB camera] --> CS["CameraService<br/>OpenCV thread · ring buffer · MJPEG"]
-    CS --> BL["BoardLocator<br/>ArUco → homography → 1024×768 warp"]
+    CS --> BL["BoardLocator<br/>ArUco → homography → top-down warp"]
     BL --> QG[QualityGate]
     BL --> MM[MotionMonitor]
     BL --> LED[LedDetector]
@@ -25,7 +25,7 @@ flowchart TB
   MR -- "HTTPS, only on Check / Ask" --> TF
   MR -- "part lookup" --> TV
   subgraph TF["Nebius Token Factory (OpenAI-compatible)"]
-    OMNI["Nemotron 3 Nano Omni<br/>perception: image + audio"]
+    OMNI["Nemotron 3.5 Super VL<br/>perception: board image"]
     NANO["Nemotron 3 Nano 30B<br/>fast text"]
     SUPER["Nemotron 3 Super 120B<br/>reasoning, tools"]
     ULTRA["Nemotron 3 Ultra<br/>deep class report"]
@@ -37,8 +37,8 @@ flowchart TB
 
 | Runs on the bench, continuously, no cost | Runs in the cloud, only on demand |
 |---|---|
-| Camera capture, sharpest-frame ring buffer | Step verification (Nano Omni): one call per Check |
-| ArUco board localisation + top-down warp | Voice / typed questions (Nano Omni) |
+| Camera capture, sharpest-frame ring buffer | Step verification (Super VL): one call per Check |
+| ArUco board localisation + top-down warp | Voice / typed questions (Super VL; speech becomes text in the browser) |
 | Quality gate (focus, light, glare, markers, motion) at 2 Hz, shown as live chips | Question intent, shortening (Nano 30B) |
 | LED-lit detector for the power test | TA help summaries, lab compiler, Tavily agent (Super) |
 | Deterministic decision policy, hint ladder, escalation | End-of-class report (Ultra, falls back to Super) |
@@ -48,15 +48,18 @@ flowchart TB
 Code: `polarity/engine/verifier.py`, `polarity/engine/decision.py`, `polarity/engine/session_engine.py`.
 
 1. Take the sharpest frame from the last ~1 s of the ring buffer.
-2. Warp the board to 1024×768. With three markers visible, the fourth corner is inferred from a homography fitted to
-   all twelve detected marker corners.
+2. Warp the board top-down: 1024×768 for the printed mat. Hand-placed markers (any order, any rotation) keep the
+   board's measured shape at 1024 px wide, turned to landscape if needed. With three markers visible, the fourth
+   corner comes from a homography fitted to all twelve detected marker corners, using the layout learned from the
+   last four-marker frame (or the printed mat's layout).
 3. Quality gate. On failure the result is CAN'T TELL with one specific retake instruction (too dark, glare, blur,
    markers hidden, hands moving) and no cloud call.
 4. Power-test step only: the LED detector compares the frame with a baseline captured when the step started. It
    excludes skin, ignores elongated red shapes such as wires, and refuses to give "strong" evidence when the LED
    looks covered or the baseline looks wrong.
-5. Perception call to Nano Omni with the verifier prompt, the step spec and the warped JPEG, plus the student's voice
-   clip when the verified audio mode allows it.
+5. Perception call (Nemotron 3.5 Super VL on our account) with the verifier prompt, the step spec and the warped
+   JPEG, plus the student's question: text from browser speech recognition, or the voice clip itself when the
+   verified audio mode allows it.
 6. Pydantic validation, with one repair call on invalid JSON. If the output is still invalid: CAN'T TELL
    (`model:invalid_output`), never a crash.
 7. Deterministic decision:

@@ -3,33 +3,34 @@
 ## Summary (5 lines)
 
 1. All eight phases (0–7) are built and committed locally, one commit per phase: about 9,500 lines of Python, 1,700 of
-   vanilla JS, 157 tests passing offline on macOS (Python 3.12), `ruff` clean.
-2. Every live part is **PENDING a `NEBIUS_API_KEY`**: no Token Factory call has been made, so model IDs, latencies
-   and capabilities are not known yet. Phase 0 exits with code 4 and a clear message until the key is added.
+   vanilla JS, 163 tests passing offline on macOS (Python 3.12), `ruff` clean.
+2. Phase 0 ran live on 2026-10-22 against `https://api.tokenfactory.nebius.com/v1/` (exit 0, about $0.001). The
+   account has no Nano Omni model and rejects audio input, so perception runs on Nemotron 3.5 Super VL and speech
+   is recognised in the browser. Exact IDs, latencies and evidence: docs/PHASE0_REPORT.md.
 3. Without the key, the whole product runs in demo mode (synthetic boards + canned answers, MOCK MODE bar on every
    screen). The Phase 0 verifier and the router's live path were exercised end to end against a local fake
    OpenAI-compatible server.
 4. Hardware-dependent checks (real webcam, LED detector on the rig, microphone and speech in a real browser) and
    the real evaluation dataset are **PENDING the rig and team photos**. No accuracy number exists yet.
-5. Nothing was pushed: the team decides when to push to the public repo (CI then runs on Linux, macOS and Windows).
+5. The phase commits and the fixes after the first live run are on `origin/main` (see "After the first live run").
 
 ## Phase 0 results
 
 | Role | Exact model ID | Case used | Latency |
 |---|---|---|---|
-| perception | PENDING (needs NEBIUS_API_KEY) | — | — |
-| fast_text | PENDING | — | — |
-| reasoning | PENDING | — | — |
-| deep | PENDING | — | — |
+| perception | `nvidia/Nemotron-3.5-Super-VL` (no Omni on the account; VL fallback) | exact | 2278 ms |
+| fast_text | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | exact | 866 ms |
+| reasoning | `nvidia/nemotron-3-super-120b-a12b` | exact | 895 ms |
+| deep | `nvidia/Nemotron-3-Ultra-550b-a55b` | exact | 779 ms |
 
-Base URL: PENDING. Observed without a key: `api.tokenfactory.us-central1.nebius.com`, `api.tokenfactory.nebius.com`
-and `api.studio.nebius.com` all answer `GET /v1/models` with HTTP 401.
+Base URL: `https://api.tokenfactory.nebius.com/v1/` (28 models). The us-central1 host lists no vision model for
+this account, and `https://tokenfactory.nebius.com/` is the console web page, not the API.
 
-OMNI COMBINED IMAGE+AUDIO → PENDING (evidence will be in docs/PHASE0_REPORT.md)
+OMNI COMBINED IMAGE+AUDIO → REJECTED (HTTP 422: content parts must be `text`, `image_url` or `video_url`)
 
-Capabilities: json_mode=PENDING, tools_mode=PENDING, thinking_control=PENDING, audio_mode=PENDING. Until
-`verify` runs, the app uses conservative defaults: prompt-only JSON + repair, manual tools, no thinking control,
-browser speech recognition.
+Capabilities: json_mode=json_schema, tools_mode=native, thinking_control=chat_template_kwargs, audio_mode=browser_stt,
+video input VERIFIED. A probe on 2026-10-22 confirmed `enable_thinking: false` stops reasoning on Nano 30B, Super and
+Super VL (T4 marks Super "no" only because it did not reply with exactly "OK").
 
 ## What works (by phase)
 
@@ -62,13 +63,11 @@ browser speech recognition.
 
 | Item | Waiting on |
 |---|---|
-| Phase 0 live run, model IDs, PHASE0_REPORT, capabilities.json, README model table | `NEBIUS_API_KEY` |
-| Live checks, voice Q&A, TA summaries, class report, lab compiler on real models | `NEBIUS_API_KEY` (+ verify) |
+| Live checks, voice Q&A, TA summaries, class report, lab compiler tried on the real rig | the rig (one live check on a synthetic board worked in about 2–3 s) |
 | Tavily lookup returning real cited sources for "NE555" | `TAVILY_API_KEY` |
-| Real cost display and a working budget guard | prices copied into `config/pricing.yaml` |
 | Real webcam preview/chips, LED detector thresholds on the rig, mic + speech in a browser | the rig (hardware) |
-| Evaluation numbers (false-pass, selective accuracy, …) | team photos (`polarity capture`) + key |
-| CI green on Linux/macOS/Windows | pushing to GitHub |
+| Evaluation numbers (false-pass, selective accuracy, …) | team photos (`polarity capture`) |
+| CI green on Linux/macOS/Windows | check the Actions tab after the push |
 | Windows setup/run scripts executed on Windows | a Windows machine (written carefully, not executed here) |
 | TA ratio, video link, team names, rig photos | humans (see TEAM_TODO.md) |
 
@@ -113,6 +112,18 @@ Full checklist with dates: [TEAM_TODO.md](TEAM_TODO.md).
 | LED detector tuned only on synthetic frames | `calibrate` on the rig; it only overrides the model when evidence is strong |
 | Windows scripts untested on Windows | CI runs the test suite on Windows; run `setup_windows.bat` on a team laptop early |
 | Port 8765 busy (a Docker container uses it on this Mac) | `run` picks the next free port and prints the URL |
+| A live check passed a synthetic shorted-resistor board (one run, 2026-10-22) | Synthetic images are not evidence either way; capture real error photos and run `eval` before trusting PASS |
+| The shared key is committed in `.env.local` | Fine while the repo is private; rotate the key and purge the file from history before it goes public |
+
+## After the first live run (2026-10-22)
+
+- The app reads `.env` and then `.env.local` (the team keeps the shared key there); real environment variables win.
+- `verify` and `doctor` now say when `NEBIUS_BASE_URL` is the console page instead of the API, and suggest the URL
+  that works. Without a configured URL, `verify` picks the endpoint that resolves the most roles (including vision).
+- Model overrides and `config/pricing.yaml` keys corrected to the exact IDs the account lists.
+- The board locator accepts hand-placed markers in any order and rotation, measures the board's real shape from the
+  markers (a full-size breadboard warps to about 1024×352, turned to landscape) and infers a hidden marker's corner.
+  Checked on the team's first 12 rig photos (`data/real_photos/`, all found). New command: `python -m polarity locate`.
 
 ## Decisions made autonomously
 
