@@ -111,6 +111,7 @@ class BoardSettings(BaseModel):
     warp_width: int = 1024
     warp_height: int = 768
     marker_ids: list[int] = Field(default_factory=lambda: [0, 1, 2, 3])
+    portrait_turn: Literal["ccw", "cw"] = "ccw"
     roi: tuple[float, float, float, float] = (0.15, 0.10, 0.70, 0.80)
 
 
@@ -265,8 +266,8 @@ _config_lock = threading.Lock()
 def load_config() -> Config:
     """Build a fresh :class:`Config` from disk and the environment."""
     p = Paths.discover()
-    env_path = paths.env_file()
-    env = EnvSettings(_env_file=env_path if env_path.exists() else None)  # type: ignore[call-arg]
+    files = paths.env_files()
+    env = EnvSettings(_env_file=tuple(files) if files else None)  # type: ignore[call-arg]
     settings = AppSettings.load(p.config / "settings.yaml")
     caps = Capabilities.load(p.capabilities)
     prices = load_pricing(p.config / "pricing.yaml")

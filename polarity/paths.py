@@ -3,7 +3,7 @@
 Overrides (all optional):
 - ``POLARITY_HOME``: repository root (defaults to the folder containing the ``polarity`` package);
 - ``POLARITY_DATA_DIR``: runtime data folder (defaults to ``<root>/data``); tests point this at a temp dir;
-- ``POLARITY_ENV_FILE``: the dotenv file to read (defaults to ``<root>/.env``);
+- ``POLARITY_ENV_FILE``: the dotenv file to read (defaults to ``<root>/.env``; a sibling ``.env.local`` overrides it);
 - ``POLARITY_DOCS_DIR``: where generated reports are written (defaults to ``<root>/docs``);
 - ``POLARITY_LABS_DIR``: published lab YAML files (defaults to ``<root>/labs``).
 """
@@ -30,6 +30,13 @@ def data_dir() -> Path:
 def env_file() -> Path:
     override = os.environ.get("POLARITY_ENV_FILE")
     return Path(override).expanduser().resolve() if override else repo_root() / ".env"
+
+
+def env_files() -> list[Path]:
+    """Dotenv files that exist, in load order: ``.env`` then ``.env.local`` (later files override earlier ones;
+    real environment variables override both)."""
+    base = env_file()
+    return [p for p in (base, base.with_name(base.name + ".local")) if p.exists()]
 
 
 def docs_dir() -> Path:

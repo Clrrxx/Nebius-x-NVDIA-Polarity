@@ -74,6 +74,11 @@ def run_checks(skip_camera: bool = False, skip_network: bool = False) -> list[It
     from polarity.llm.client import mask_secret
 
     cfg = get_config()
+    from polarity import paths as _paths
+
+    loaded = [p.name for p in _paths.env_files()]
+    items.append(Item("Env files", "OK" if loaded else "WARN", ", ".join(loaded) or "none found",
+                      "" if loaded else "Copy .env.example to .env (or .env.local) and fill it in."))
     env_path = cfg.paths.root / ".env"
     if cfg.api_key:
         items.append(Item("NEBIUS_API_KEY", "OK", mask_secret(cfg.api_key)))
@@ -136,6 +141,9 @@ def _token_factory(cfg: Any) -> Item:
         return Item("Token Factory", "FAIL", "key rejected (401)", "Check NEBIUS_API_KEY in .env.")
     except (openai.APIStatusError, openai.APIConnectionError) as exc:
         return Item("Token Factory", "WARN", f"unreachable: {type(exc).__name__}", "Check your network / proxy.")
+    except Exception as exc:  # noqa: BLE001 - e.g. the console web page instead of the API
+        return Item("Token Factory", "FAIL", f"{base} is not the API ({type(exc).__name__})",
+                    "Set NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1/ (or leave it blank) and run verify.")
 
 
 def _camera(cfg: Any) -> Item:

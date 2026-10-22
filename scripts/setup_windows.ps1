@@ -69,7 +69,12 @@ Invoke-Checked $VenvPy @("-m", "pip", "install", "-e", ".")
 $EnvFile = Join-Path $Root ".env"
 if (-not (Test-Path -LiteralPath $EnvFile)) {
     Copy-Item -LiteralPath (Join-Path $Root ".env.example") -Destination $EnvFile
-    Write-Host "Created .env from .env.example. Paste your NEBIUS_API_KEY into it."
+    $LocalEnv = Join-Path $Root ".env.local"
+    if ((Test-Path -LiteralPath $LocalEnv) -and (Select-String -LiteralPath $LocalEnv -Pattern '^NEBIUS_API_KEY=.+' -Quiet)) {
+        Write-Host "Created .env from .env.example. The key in .env.local is used (it overrides .env), so no need to edit .env."
+    } else {
+        Write-Host "Created .env from .env.example. Paste your NEBIUS_API_KEY into it."
+    }
 }
 
 Write-Host "Rendering demo scenes (synthetic placeholders for demo mode)..."

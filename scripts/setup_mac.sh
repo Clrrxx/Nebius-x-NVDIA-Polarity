@@ -38,7 +38,11 @@ fi
 
 if [ ! -f .env ]; then
   cp .env.example .env
-  echo "Created .env from .env.example. Paste your NEBIUS_API_KEY into it."
+  if grep -q '^NEBIUS_API_KEY=..*' .env.local 2>/dev/null; then
+    echo "Created .env from .env.example. The key in .env.local is used (it overrides .env), so no need to edit .env."
+  else
+    echo "Created .env from .env.example. Paste your NEBIUS_API_KEY into it."
+  fi
 fi
 
 echo "Rendering demo scenes (synthetic placeholders for demo mode)..."

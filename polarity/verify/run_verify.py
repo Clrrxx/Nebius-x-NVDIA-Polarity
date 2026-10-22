@@ -220,10 +220,14 @@ class Verifier:
             cv2_note = "cv2 available (video test possible)"
         except ImportError:
             cv2_note = "cv2 missing (video test will be skipped)"
-        from dotenv import load_dotenv
+        from dotenv import dotenv_values
 
         env_path = paths.env_file()
-        load_dotenv(env_path, override=False)
+        merged: dict[str, str] = {}
+        for f in paths.env_files():  # .env, then .env.local overrides it
+            merged.update({k: v for k, v in dotenv_values(f).items() if v is not None})
+        for k, v in merged.items():
+            os.environ.setdefault(k, v)  # real environment variables still win
         self.api_key = (os.environ.get("NEBIUS_API_KEY") or "").strip()
         from polarity.llm.client import mask_secret
 
@@ -240,38 +244,66 @@ class Verifier:
         self._set("T0", "Environment", "PASS", details)
         return True
 
-    def t1_base_url(self) -> bool:
+    def _list_models(self, url: str) -> tuple[list[str] | None, str]:
+        """``(ids, note)`` for one candidate base URL; ``ids`` is None when it is not a working API."""
         import openai
 
-        from polarity.llm.client import KNOWN_BASE_URLS, make_client
+        from polarity.llm.client import make_client
         from polarity.llm.resolver import error_text
 
+        try:
+            ids = sorted({m.id for m in make_client(url, self.api_key, timeout=15.0).models.list(timeout=15.0)})
+        except openai.AuthenticationError as exc:
+            return None, f"401 key rejected ({_truncate(error_text(exc), 120)})"
+        except openai.APIStatusError as exc:
+            return None, f"HTTP {exc.status_code} ({_truncate(error_text(exc), 120)})"
+        except openai.APIConnectionError as exc:
+            return None, type(exc).__name__
+        except Exception as exc:  # noqa: BLE001 - e.g. a web page instead of the API
+            return None, f"not an OpenAI-compatible API ({type(exc).__name__}); is this the console URL?"
+        return (ids, f"200 ({len(ids)} models)") if ids else (None, "200 but empty model list")
+
+    def t1_base_url(self) -> bool:
+        """Configured URL only (spec); otherwise every known endpoint, keeping the one where most roles resolve
+        (an endpoint can answer but lack the vision model, as us-central1 did for our account)."""
+        from polarity.llm.client import KNOWN_BASE_URLS, make_client
+        from polarity.llm.resolver import resolve_roles
+
         configured = (os.environ.get("NEBIUS_BASE_URL") or "").strip()
-        candidates = [configured] if configured else list(KNOWN_BASE_URLS)
-        tried = []
-        for url in candidates:
-            client = make_client(url, self.api_key, timeout=15.0)
-            try:
-                page = client.models.list(timeout=15.0)
-                ids = sorted({m.id for m in page})
-            except openai.AuthenticationError as exc:
-                tried.append(f"{url} → 401 key rejected ({_truncate(error_text(exc), 120)})")
-                continue
-            except openai.APIStatusError as exc:
-                tried.append(f"{url} → HTTP {exc.status_code} ({_truncate(error_text(exc), 120)})")
-                continue
-            except openai.APIConnectionError as exc:
-                tried.append(f"{url} → {type(exc).__name__}")
-                continue
+        tried: list[str] = []
+        if configured:
+            ids, note = self._list_models(configured)
+            tried.append(f"{configured} → {note}")
+            if ids:
+                self.base_url, self.client, self.all_ids = configured, make_client(configured, self.api_key, timeout=60.0), ids
+                self._set("T1", "Base URL probe", "PASS", f"Using {configured} (from NEBIUS_BASE_URL)", evidence=" ; ".join(tried))
+                return True
+            hint = ""
+            for url in KNOWN_BASE_URLS:  # suggest a working endpoint, but respect the explicit setting
+                alt, alt_note = self._list_models(url)
+                tried.append(f"{url} → {alt_note}")
+                if alt and not hint:
+                    hint = f" Set NEBIUS_BASE_URL={url} (or leave it blank) and run verify again."
+            self._set("T1", "Base URL probe", "FAIL", f"NEBIUS_BASE_URL={configured} is not a working API.{hint}",
+                      error=" ; ".join(tried))
+            return False
+        best: tuple[tuple[int, int, int], str, list[str]] | None = None
+        for url in KNOWN_BASE_URLS:
+            ids, note = self._list_models(url)
+            tried.append(f"{url} → {note}")
             if not ids:
-                tried.append(f"{url} → 200 but empty model list")
                 continue
-            self.base_url, self.client, self.all_ids = url, make_client(url, self.api_key, timeout=60.0), ids
-            tried.append(f"{url} → 200 ({len(ids)} models)")
-            self._set("T1", "Base URL probe", "PASS", f"Using {url}", evidence=" ; ".join(tried))
-            return True
-        self._set("T1", "Base URL probe", "FAIL", "No base URL returned a model list.", error=" ; ".join(tried))
-        return False
+            res = resolve_roles(ids)
+            score = (int(res.ids["perception"] is not None), sum(v is not None for v in res.ids.values()), len(ids))
+            if best is None or score > best[0]:
+                best = (score, url, ids)
+        if best is None:
+            self._set("T1", "Base URL probe", "FAIL", "No base URL returned a model list.", error=" ; ".join(tried))
+            return False
+        _, url, ids = best
+        self.base_url, self.client, self.all_ids = url, make_client(url, self.api_key, timeout=60.0), ids
+        self._set("T1", "Base URL probe", "PASS", f"Using {url} (most roles resolvable)", evidence=" ; ".join(tried))
+        return True
 
     def t2_discovery(self) -> None:
         from rich.table import Table
