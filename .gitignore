@@ -1,5 +1,3 @@
-# Secrets
-.env
 
 # Python
 .venv/
@@ -14,7 +12,6 @@ dist/
 # Runtime data (local to each bench)
 data/polarity.db*
 data/media/
-data/capabilities.json
 data/verify_assets/
 data/eval_runs/
 data/lab_drafts/

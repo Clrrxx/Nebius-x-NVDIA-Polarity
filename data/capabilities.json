@@ -1,0 +1,130 @@
+{
+  "generated_at": "2026-10-22T12:27:07+08:00",
+  "base_url": "https://api.tokenfactory.nebius.com/v1/",
+  "models": {
+    "perception": {
+      "id": "nvidia/Nemotron-3.5-Super-VL",
+      "case": "exact",
+      "latency_ms": 2278
+    },
+    "fast_text": {
+      "id": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "case": "exact",
+      "latency_ms": 866
+    },
+    "reasoning": {
+      "id": "nvidia/nemotron-3-super-120b-a12b",
+      "case": "exact",
+      "latency_ms": 895
+    },
+    "deep": {
+      "id": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "case": "exact",
+      "latency_ms": 779,
+      "available": true
+    }
+  },
+  "all_model_ids": [
+    "MiniMaxAI/MiniMax-M3",
+    "NousResearch/Hermes-4-405B",
+    "Qwen/Qwen3-235B-A22B-Instruct-2507",
+    "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "Qwen/Qwen3-Embedding-8B",
+    "Qwen/Qwen3.5-397B-A17B",
+    "Qwen/Qwen3.8-27B",
+    "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "deepseek-ai/DeepSeek-V4-Pro",
+    "deepseek-ai/DeepSeek-V4-Pro-0813",
+    "deepseek-ai/DeepSeek-V4.1-Flash",
+    "google/gemma-3-27b-it",
+    "meta-models/muse-spark-open",
+    "moonshotai/Kimi-K2.6",
+    "moonshotai/Kimi-K2.7-Code",
+    "moonshotai/Kimi-K3",
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+    "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "nvidia/Nemotron-3.5-Super-VL",
+    "nvidia/Nemotron-3_5-Lightning",
+    "nvidia/nemotron-3-super-120b-a12b",
+    "openai/gpt-oss-120b",
+    "openbmb/MiniCPM-V-4_5",
+    "reflection/beam",
+    "zai-org/GLM-5.1",
+    "zai-org/GLM-5.2",
+    "zai-org/GLM-5.3",
+    "zai-org/GLM-5.3-Flash"
+  ],
+  "perception_fallback_vl": true,
+  "image_input": true,
+  "audio_input": {
+    "supported": false,
+    "variant": null
+  },
+  "combined_image_audio": "REJECTED",
+  "video_input": "VERIFIED",
+  "json_mode": "json_schema",
+  "tools_mode": "native",
+  "thinking_control": "chat_template_kwargs",
+  "audio_mode_recommended": "browser_stt",
+  "verified": true,
+  "audio_modality_proof": true,
+  "thinking_details": {
+    "baseline": {
+      "nvidia/Nemotron-3.5-Super-VL": {
+        "latency_ms": 2278,
+        "reasoning_seen": true,
+        "says_ok": false
+      },
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+        "latency_ms": 866,
+        "reasoning_seen": true,
+        "says_ok": false
+      },
+      "nvidia/nemotron-3-super-120b-a12b": {
+        "latency_ms": 895,
+        "reasoning_seen": true,
+        "says_ok": false
+      },
+      "nvidia/Nemotron-3-Ultra-550b-a55b": {
+        "latency_ms": 675,
+        "reasoning_seen": false,
+        "says_ok": true
+      }
+    },
+    "chat_template_kwargs": {
+      "perception": {
+        "http": 200,
+        "latency_ms": 637,
+        "says_ok": true,
+        "reasoning_seen": false,
+        "error": null
+      },
+      "reasoning": {
+        "http": 200,
+        "latency_ms": 450,
+        "says_ok": false,
+        "reasoning_seen": false,
+        "error": null
+      }
+    },
+    "system_flag": {
+      "perception": {
+        "http": 200,
+        "latency_ms": 732,
+        "says_ok": false,
+        "reasoning_seen": true,
+        "error": null
+      },
+      "reasoning": {
+        "http": 200,
+        "latency_ms": 780,
+        "says_ok": true,
+        "reasoning_seen": true,
+        "error": null
+      }
+    }
+  },
+  "notes": [
+    "No Nemotron Omni model listed; using a Nemotron VL model for perception."
+  ]
+}
