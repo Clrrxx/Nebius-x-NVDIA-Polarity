@@ -66,6 +66,105 @@ def test_zoom_crop_is_full_size(locator: BoardLocator, scene) -> None:  # noqa: 
     assert crop is not None and crop.shape == (768, 1024, 3)
 
 
+REAL_PHOTOS = Path(__file__).resolve().parents[1] / "data" / "real_photos" / "2026-10-21"
+_BG = (60, 60, 60)
+
+
+def _hand_placed_frame(cover: int | None = None) -> tuple[np.ndarray, dict[int, np.ndarray]]:
+    """A portrait board between hand-placed markers like the team's first real rig: ids 0 and 1 upright along the
+    top, 2 and 3 swapped and turned 90° along the bottom, with a red dot inside the board next to marker 0. Returns
+    a 1920×1080 camera frame (mild keystone) and each marker's inner corner in frame coordinates."""
+    m, q, w, h, pad = 110, 14, 200, 600, 60      # marker paper, white margin, inner gap, border around it all
+    cw, ch = w + 2 * m + 2 * pad, h + 2 * m + 2 * pad
+    canvas = np.full((ch, cw, 3), _BG, np.uint8)
+    x0, y0 = pad + m, pad + m                    # top-left of the gap between the markers
+    cv2.rectangle(canvas, (x0, y0), (x0 + w, y0 + h), (215, 215, 210), -1)
+    cv2.circle(canvas, (x0 + 30, y0 + 30), 12, (30, 30, 220), -1)
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    spots = {0: ((x0 - m, y0 - m), 0, (x0 - q, y0 - q)), 1: ((x0 + w, y0 - m), 0, (x0 + w + q, y0 - q)),
+             2: ((x0 - m, y0 + h), 1, (x0 - q, y0 + h + q)), 3: ((x0 + w, y0 + h), 1, (x0 + w + q, y0 + h + q))}
+    for mid, ((mx, my), turns, _) in spots.items():
+        if mid == cover:
+            continue
+        canvas[my : my + m, mx : mx + m] = 255
+        tile = np.rot90(cv2.aruco.generateImageMarker(dictionary, mid, m - 2 * q), turns)
+        canvas[my + q : my + m - q, mx + q : mx + m - q] = tile[..., None]
+    src = np.array([[0, 0], [cw, 0], [cw, ch], [0, ch]], dtype=np.float32)
+    dst = np.array([[720, 70], [720 + cw - 30, 80], [720 + cw + 25, 70 + ch], [705, 60 + ch]], dtype=np.float32)
+    hmat = cv2.getPerspectiveTransform(src, dst)
+    frame = cv2.warpPerspective(canvas, hmat, (1920, 1080), borderMode=cv2.BORDER_CONSTANT, borderValue=_BG)
+    inner = {mid: cv2.perspectiveTransform(np.array([[c]], dtype=np.float32), hmat).reshape(2)
+             for mid, (_, _, c) in spots.items()}
+    return frame, inner
+
+
+def _red_dot(img: np.ndarray) -> tuple[float, float]:
+    """Centre of the red dot as fractions of the image width and height."""
+    b, g, r = (img[..., k].astype(int) for k in range(3))
+    ys, xs = np.nonzero((r > 150) & (g < 90) & (b < 90))
+    return float(xs.mean()) / img.shape[1], float(ys.mean()) / img.shape[0]
+
+
+def test_hand_placed_markers_any_order_turned_to_landscape() -> None:
+    frame, inner = _hand_placed_frame()
+    loc = BoardLocator()
+    det = loc.detect(frame)
+    assert det.found and det.markers_found == 4 and not det.inferred
+    true_aspect = 628 / 228  # inner corners span (600 + 2·14) × (200 + 2·14)
+    assert det.aspect is not None and abs(det.aspect - true_aspect) < 0.03 * true_aspect
+    w, h = loc.warp_size(det)
+    assert w == 1024 and abs(h - 1024 / true_aspect) <= 8
+    # counter-clockwise turn: marker 1's inner corner becomes top-left and marker 0's bottom-left
+    expected = np.stack([inner[1], inner[3], inner[2], inner[0]])
+    assert np.abs(det.quad - expected).max() < 2.0
+    warped = loc.warp(frame, det)
+    assert warped is not None and warped.shape == (h, w, 3)
+    x, y = _red_dot(warped)
+    assert x < 0.15 and y > 0.75  # the dot next to marker 0 now sits bottom-left
+    cw = BoardLocator(portrait_turn="cw").detect(frame)
+    assert np.abs(cw.quad - np.stack([inner[2], inner[0], inner[1], inner[3]])).max() < 2.0
+
+
+def test_hand_placed_markers_with_one_hidden() -> None:
+    frame, inner = _hand_placed_frame()
+    covered, _ = _hand_placed_frame(cover=3)
+    expected = np.stack([inner[1], inner[3], inner[2], inner[0]])
+    loc = BoardLocator()
+    full = loc.detect(frame)
+    learned = loc.detect(covered)  # same locator: the layout learned from the 4-marker frame
+    assert learned.found and learned.inferred and learned.markers_found == 3
+    assert learned.size == full.size
+    assert np.abs(learned.quad - expected).max() < 3.0
+    fresh = BoardLocator().detect(covered)  # never saw all four: completed from the marker squares alone
+    assert fresh.found and fresh.inferred and "marker squares" in fresh.note
+    assert np.abs(fresh.quad - expected).max() < 8.0  # single-marker extrapolation: a few px
+
+
+def test_markers_that_do_not_outline_a_board_are_not_found() -> None:
+    frame = np.full((1080, 1920, 3), _BG, np.uint8)
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    for k in range(4):  # four markers in a row
+        x = 200 + k * 400
+        frame[400:560, x : x + 160] = 255
+        frame[420:540, x + 20 : x + 140] = cv2.aruco.generateImageMarker(dictionary, k, 120)[..., None]
+    det = BoardLocator().detect(frame)
+    assert det.markers_found == 4 and not det.found
+
+
+@pytest.mark.parametrize(("name", "markers"), [("20261021_234020.jpg", 4), ("20261021_233534.jpg", 3)])
+def test_real_photo_full_size_breadboard(name: str, markers: int) -> None:
+    from polarity.cvio import imread
+
+    frame = imread(REAL_PHOTOS / name)
+    assert frame is not None, f"missing {REAL_PHOTOS / name}"
+    loc = BoardLocator()
+    det = loc.detect(frame)
+    assert det.found and det.markers_found == markers and det.inferred == (markers == 3)
+    assert det.aspect is not None and 2.6 < det.aspect < 3.4  # a full-size breadboard between the markers
+    warped = loc.warp(frame, det)
+    assert warped is not None and warped.shape[1] == 1024 and 300 <= warped.shape[0] <= 400
+
+
 @pytest.mark.parametrize(("label", "failing"), [("_dark", "dark"), ("_blur", "blur"), ("_glare", "glare")])
 def test_quality_gate_flags_bad_images(locator: BoardLocator, gate: QualityGate, scene, label: str,  # noqa: ANN001
                                        failing: str) -> None:
@@ -150,3 +249,15 @@ def test_marker_mat_is_detectable(tmp_path: Path) -> None:
     small = cv2.resize(page, (page.shape[1] // 3, page.shape[0] // 3), interpolation=cv2.INTER_AREA)
     det = BoardLocator().detect(small)
     assert det.found and det.markers_found == 4 and sorted(det.ids) == [0, 1, 2, 3]
+
+
+def test_locate_command_saves_top_down_views(tmp_path: Path) -> None:
+    from typer.testing import CliRunner
+
+    from polarity.cli import app
+
+    result = CliRunner().invoke(app, ["locate", str(REAL_PHOTOS / "20261021_234020.jpg"), "--out", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "20261021_234020_warped.jpg").exists()
+    missing = CliRunner().invoke(app, ["locate", str(tmp_path / "nope.jpg"), "--out", str(tmp_path)])
+    assert missing.exit_code == 1

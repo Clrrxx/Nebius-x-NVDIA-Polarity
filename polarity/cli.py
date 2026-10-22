@@ -246,6 +246,40 @@ def calibrate() -> None:
 
 
 @app.command()
+def locate(
+    images: list[Path] = typer.Argument(..., help="Photos, or folders of photos, of the board between its markers."),
+    out: Path = typer.Option(None, help="Folder for the top-down views (default: data/logs/locate)."),
+) -> None:
+    """Find the board in photos and save the top-down view the AI would get (checks a marker layout, no camera)."""
+    from polarity.config import get_config
+    from polarity.cvio import imread, imwrite
+    from polarity.edge.board import BoardLocator
+
+    cfg = get_config()
+    locator = BoardLocator.from_config(cfg)
+    folder = out or cfg.paths.data / "logs" / "locate"
+    folder.mkdir(parents=True, exist_ok=True)
+    files = [f for p in images for f in (sorted(x for x in p.iterdir() if x.suffix.lower() in (".jpg", ".jpeg", ".png"))
+                                         if p.is_dir() else [p])]
+    console = _console()
+    missed = 0
+    for path in files:
+        frame = imread(path)
+        det = locator.detect(frame) if frame is not None else None
+        if det is None or not det.found:
+            missed += 1
+            why = "not an image" if det is None else f"board not found: {det.markers_found} markers, {det.note}"
+            console.print(f"[yellow]{path.name}: {why}[/yellow]")
+            continue
+        target = folder / f"{path.stem}_warped.jpg"
+        imwrite(target, locator.warp(frame, det))  # type: ignore[arg-type]
+        console.print(f"{path.name}: markers {sorted(det.ids)}, {det.note} → {target}")
+    console.print(f"{len(files) - missed} of {len(files)} found. Views in {folder}")
+    if missed:
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def purge(days: int = typer.Option(None, help="Retention in days (default: MEDIA_RETENTION_DAYS).")) -> None:
     """Delete stored bench media older than the retention period."""
     from polarity.config import get_config

@@ -261,7 +261,7 @@ body.page-bench { font-size: var(--fs-md); }
   position: absolute; right: var(--s3); bottom: var(--s3); width: 34%; max-width: 360px; aspect-ratio: 4 / 3;
   border-radius: 10px; overflow: hidden; border: 2px solid var(--accent); background: #05080B; box-shadow: var(--shadow);
 }
-.camera .pip img { width: 100%; height: 100%; object-fit: cover; }
+.camera .pip img { width: 100%; height: 100%; object-fit: contain; } /* full-size boards warp wider than 4:3 */
 .camera .pip figcaption {
   position: absolute; left: 0; right: 0; top: 0; padding: 4px 8px; font-size: 12px; font-weight: 700;
   background: linear-gradient(rgba(0, 0, 0, 0.7), transparent); color: #fff; letter-spacing: 0.02em;
@@ -396,7 +396,7 @@ body.page-bench { font-size: var(--fs-md); }
 .hcard__who { font-weight: 750; color: var(--text); font-size: var(--fs-sm); }
 .hcard__body { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: var(--s3); align-items: start; }
 .hcard__body.no-thumb { grid-template-columns: minmax(0, 1fr); }
-.hcard__body img { width: 88px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: cover; }
+.hcard__body img { width: 88px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: contain; background: #05080B; }
 .hcard .summary { font-size: var(--fs-sm); }
 .hcard .action { font-size: var(--fs-xs); color: var(--text-muted); }
 .urg { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: var(--pill); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid currentColor; }
@@ -450,7 +450,7 @@ body.page-bench { font-size: var(--fs-md); }
 
 .timeline { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s3); }
 .timeline li { display: grid; grid-template-columns: 112px 1fr; gap: var(--s3); padding-bottom: var(--s3); border-bottom: 1px solid var(--border); }
-.timeline img { width: 112px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface-2); }
+.timeline img { width: 112px; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 4 / 3; object-fit: contain; background: var(--surface-2); }
 .timeline .obs { font-size: var(--fs-xs); color: var(--text-muted); }
 .nophoto { width: 112px; aspect-ratio: 4 / 3; border-radius: 8px; border: 1px dashed var(--border); display: grid; place-items: center; text-align: center; font-size: 11px; color: var(--text-muted); padding: 4px; }
 

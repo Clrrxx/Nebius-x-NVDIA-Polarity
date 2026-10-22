@@ -42,7 +42,9 @@ ui:
 board:
   warp_width: 1024
   warp_height: 768
-  marker_ids: [0, 1, 2, 3]    # top-left, top-right, bottom-right, bottom-left (DICT_4X4_50)
+  marker_ids: [0, 1, 2, 3]    # printed mat: top-left, top-right, bottom-right, bottom-left (DICT_4X4_50).
+                              # Hand-placed markers may sit in any order and be turned; see polarity/edge/board.py.
+  portrait_turn: ccw          # a board taller than wide is turned to landscape: ccw | cw (use cw if it shows upside down)
   roi: [0.15, 0.10, 0.70, 0.80]   # fixed ROI (x, y, w, h as fractions) when MARKERS_ENABLED=false
 camera:
   ring_frames: 15             # ring buffer length (sampled at <= ring_hz, so ~1 s of history)
