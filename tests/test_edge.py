@@ -198,6 +198,26 @@ def test_quality_gate_passes_good_image(locator: BoardLocator, gate: QualityGate
     assert all(chips(report).values())
 
 
+def test_focus_is_measured_at_native_resolution() -> None:
+    """A sharp 1280-px webcam frame: the warp enlarges the board, which used to read as blur (score 72 < 80)."""
+    from polarity.cvio import imread
+
+    img = imread(REAL_PHOTOS / "20261021_231444.jpg")
+    assert img is not None
+    s = 1280 / max(img.shape[:2])
+    frame = cv2.resize(img, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
+    loc, gate = BoardLocator(), QualityGate(get_config().settings.quality)
+    det = loc.detect(frame)
+    assert det.found
+
+    def blur_failing(f: np.ndarray) -> bool:
+        report = gate.evaluate(loc.warp(f, det), det.markers_found, 0.0, board_found=True, focus_image=loc.region(f, det))
+        return "blur" in report.failing
+
+    assert not blur_failing(frame)
+    assert blur_failing(cv2.GaussianBlur(frame, (0, 0), 2.0))  # a genuinely soft image still fails
+
+
 def test_quality_gate_markers_and_motion(gate: QualityGate, locator: BoardLocator, scene) -> None:  # noqa: ANN001
     frame = scene("s3", "correct")
     det = locator.detect(frame)

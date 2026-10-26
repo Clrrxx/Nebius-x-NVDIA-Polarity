@@ -322,6 +322,18 @@ class BoardLocator:
         size = (int(round(w * scale)), int(round(h * scale)))
         return cv2.warpPerspective(frame, hmat, size, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
 
+    def region(self, frame: np.ndarray, det: BoardDetection) -> np.ndarray | None:
+        """The board's bounding box in ``frame`` at native resolution (for focus), or ``None`` when not found."""
+        if not det.found or det.quad is None:
+            return None
+        h, w = frame.shape[:2]
+        x0, y0 = np.floor(det.quad.min(axis=0)).astype(int)
+        x1, y1 = np.ceil(det.quad.max(axis=0)).astype(int)
+        x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, w), min(y1, h)
+        if x1 - x0 < 16 or y1 - y0 < 16:
+            return None
+        return frame[y0:y1, x0:x1]
+
     def zoom_crop(self, frame: np.ndarray, det: BoardDetection, centre: tuple[float, float],
                   zoom: float = 1.6) -> np.ndarray | None:
         """A ``zoom``× closer view around ``centre`` (fractions of the warped board), re-warped from the full-resolution

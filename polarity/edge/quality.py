@@ -1,7 +1,9 @@
 """QualityGate: decide on-device whether an image is good enough to send to the cloud at all.
 
-Metrics on the warped (or ROI) grey image: variance of the Laplacian (focus), mean brightness, glare ratio
-(pixels >= 250), markers found, and motion from MotionMonitor. A failing gate returns a local CAN'T TELL with a
+Metrics on the warped (or ROI) grey image: mean brightness, glare ratio (pixels >= 250), markers found, and motion
+from MotionMonitor. Focus (variance of the Laplacian) is measured on the board's region of the camera frame at its
+native resolution: the warp enlarges that region (e.g. 741 → 1024 px), which smooths every edge and cut a sharp
+board's score about 5× on a real rig. A failing gate returns a local CAN'T TELL with a
 specific retake instruction and makes no cloud call.
 """
 
@@ -28,20 +30,25 @@ CHIP_NAMES = {"light": ("dark", "bright"), "focus": ("blur",), "glare": ("glare"
               "steady": ("motion",)}
 
 
-def _gray(img: np.ndarray, width: int = 1024) -> np.ndarray:
+def _gray(img: np.ndarray, width: int = 1024, upscale: bool = True) -> np.ndarray:
     gray = img if img.ndim == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     h, w = gray.shape[:2]
-    if w != width:
+    if w > width or (upscale and w < width):
         gray = cv2.resize(gray, (width, max(1, int(round(h * width / w)))),
                           interpolation=cv2.INTER_AREA if w > width else cv2.INTER_LINEAR)
     return gray
 
 
-def image_metrics(img: np.ndarray) -> dict[str, float]:
-    """Focus, brightness and glare for an image (normalised to 1024 px wide)."""
+def focus_score(img: np.ndarray) -> float:
+    """Variance of the Laplacian, shrunk to at most 1024 px wide but never enlarged (enlarging reads as blur)."""
+    return float(cv2.Laplacian(_gray(img, upscale=False), cv2.CV_64F).var())
+
+
+def image_metrics(img: np.ndarray, focus_img: np.ndarray | None = None) -> dict[str, float]:
+    """Focus (on ``focus_img`` when given, else ``img``), brightness and glare (on ``img`` at 1024 px wide)."""
     gray = _gray(img)
     return {
-        "blur_var": float(cv2.Laplacian(gray, cv2.CV_64F).var()),
+        "blur_var": focus_score(focus_img if focus_img is not None else img),
         "brightness": float(gray.mean()),
         "glare_ratio": float(np.count_nonzero(gray >= 250)) / float(gray.size),
     }
@@ -53,12 +60,14 @@ class QualityGate:
         self.markers_enabled = markers_enabled
 
     def evaluate(self, image: np.ndarray, markers_found: int | None = None,
-                 motion: float | None = None, board_found: bool | None = None) -> QualityReport:
+                 motion: float | None = None, board_found: bool | None = None,
+                 focus_image: np.ndarray | None = None) -> QualityReport:
         """Evaluate the warped board image (or the raw frame when the board was not found). ``board_found=False``
         fails "markers" even when enough markers are visible (e.g. they do not outline a board), so the
-        Board chip agrees with what Check will do."""
+        Board chip agrees with what Check will do. ``focus_image`` is the board's region of the raw frame (see
+        ``BoardLocator.region``); without it, focus is measured on ``image``."""
         s = self.s
-        m = image_metrics(image)
+        m = image_metrics(image, focus_image)
         metrics: dict[str, float | int | None] = {**m, "markers": markers_found, "motion": motion}
         failing: list[str] = []
         if self.markers_enabled and ((markers_found is not None and markers_found < s.markers_min)  # type: ignore[attr-defined]

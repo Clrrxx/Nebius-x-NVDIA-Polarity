@@ -95,7 +95,8 @@ class Verifier:
         warped = self.locator.warp(frame, det)
         markers = det.markers_found if self.config.env.markers_enabled else None
         quality = self.gate.evaluate(warped if warped is not None else frame, markers, motion,
-                                     board_found=det.found if self.config.env.markers_enabled else None)
+                                     board_found=det.found if self.config.env.markers_enabled else None,
+                                     focus_image=self.locator.region(frame, det))
         return det, warped, quality
 
     def _encode(self, img: np.ndarray) -> bytes:
