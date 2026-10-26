@@ -21,12 +21,13 @@ report. A TA can also turn any lab handout PDF into checkable steps.
 
 ## How we built it
 
-- **Edge (bench computer):** Python, OpenCV ArUco markers on a printed mat to warp the board to a 1024×768
-  top-down view; an on-device quality gate (focus, brightness, glare, markers, motion) so bad photos never reach
+- **Edge (bench computer):** Python, OpenCV ArUco markers (a printed mat, or four markers hand-placed at the board's
+  corners in any order) to warp the board to a top-down view (1024×768 for the mat; hand-placed layouts keep the
+  board's measured shape); an on-device quality gate (focus, brightness, glare, markers, motion) so bad photos never reach
   the cloud; an LED-lit detector against a baseline frame (with skin rejection for the finger on the button).
 - **Nebius Token Factory + NVIDIA Nemotron 3** (OpenAI-compatible API), routed by role:
-  - **Nano Omni:** one call per check, board image plus the student's voice clip [VERIFY combined image+audio
-    status from docs/PHASE0_REPORT.md];
+  - **Nemotron 3.5 Super VL:** one call per check with the warped board image, plus the student's question
+    (turned into text by the browser's speech recognition, because our account rejects audio content parts);
   - **Nano 30B:** cheap text jobs;
   - **Super 120B:** TA triage, lab compiler, Tavily tool agent;
   - **Ultra:** end-of-class report.
@@ -51,7 +52,10 @@ report. A TA can also turn any lab handout PDF into checkable steps.
   tilted test frame; fitting a homography to all twelve visible marker corners fixed it.
 - **Not knowing the API surface in advance.** Model-ID casing, audio content-part formats, JSON-schema support and
   thinking control all had to be probed rather than assumed. Phase 0 tests each one with inputs whose answers prove
-  the modality was understood. [VERIFY: add what the live Phase 0 run actually found.]
+  the modality was understood. The live run changed our design: the Nano Omni model we planned around is not listed
+  for our account, and both audio content-part formats came back HTTP 422, so perception moved to Nemotron 3.5 Super
+  VL and speech recognition moved into the browser. Strict JSON-schema output, native tool calling and exact-case
+  model IDs all worked; thinking could be switched off on the vision model with `chat_template_kwargs`.
 - **Cross-platform details:** OpenCV can't open non-ASCII Windows paths, so we encode and decode in memory;
   `setup_windows.ps1` handles spaces in user names.
 
@@ -73,5 +77,5 @@ with honest "TA review" for what a camera can't judge; multilingual voice.
 
 ## Built with
 
-Python · FastAPI · OpenCV (ArUco) · NumPy · Pydantic · SQLite · NVIDIA Nemotron 3 Nano Omni · Nemotron 3 Nano 30B ·
+Python · FastAPI · OpenCV (ArUco) · NumPy · Pydantic · SQLite · NVIDIA Nemotron 3.5 Super VL · Nemotron 3 Nano 30B ·
 Nemotron 3 Super 120B · Nemotron 3 Ultra · Nebius Token Factory · Tavily · Web Audio · Web Speech API

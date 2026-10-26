@@ -12,7 +12,7 @@ seeded class on the TA dashboard, and its "simulated data" banner must stay visi
 | 0:15–0:30 | Rig close-up: camera over the board, marker mat, laptop with the bench view | Meet Polarity: an AI lab partner on the bench. |
 | 0:30–1:45 | **Continuous hardware footage**, picture-in-picture (hands + board, and the screen) | Step 1 → PASS. Step 3 with the **LED reversed** → FIX with the spoken level-1 hint → the student flips it → PASS. Tilt into the lamp → glare → **CAN'T TELL** "tilt away from the light" → retake → PASS. Hold V: "Which leg is longer?" → spoken answer. Step 6: hold the button, LED lights → **"Confirmed by the on-device LED detector"** + PASS. |
 | 1:45–2:15 | TA dashboard (simulated banner visible) | Help queue with Super's summary, heatmap, step insights, "Generate class report" → Ultra report. |
-| 2:15–2:40 | Architecture diagram + `/debug` panel | Edge vs cloud split; model routing (Omni / Super / Ultra / Nano) with the **real model IDs** from Phase 0; JSON verdicts; the **real eval numbers** from docs/EVAL_RESULTS.md (only if the eval has been run). |
+| 2:15–2:40 | Architecture diagram + `/debug` panel | Edge vs cloud split; model routing (Super VL / Nano / Super / Ultra) with the **real model IDs** from Phase 0; JSON verdicts; the **real eval numbers** from docs/EVAL_RESULTS.md (only if the eval has been run). |
 | 2:40–3:00 | Back to the student; logo | Impact and what's next: any lab sheet → verifiable steps; Jetson bench units. |
 
 ## Shot checklist
