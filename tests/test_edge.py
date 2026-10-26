@@ -149,6 +149,21 @@ def test_markers_that_do_not_outline_a_board_are_not_found() -> None:
         frame[420:540, x + 20 : x + 140] = cv2.aruco.generateImageMarker(dictionary, k, 120)[..., None]
     det = BoardLocator().detect(frame)
     assert det.markers_found == 4 and not det.found
+    # The Board chip must agree with the locator: four markers seen, but no board to check.
+    report = QualityGate(get_config().settings.quality).evaluate(frame, det.markers_found, 0.0, board_found=det.found)
+    assert "markers" in report.failing and not chips(report)["board"]
+
+
+def test_wrong_marker_ids_are_named_in_the_note() -> None:
+    frame = np.full((1080, 1920, 3), _BG, np.uint8)
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    for k, mid in enumerate((10, 11, 12, 13)):  # right dictionary, wrong ids (someone else's printout)
+        x = 200 + k * 400
+        frame[400:560, x : x + 160] = 255
+        frame[420:540, x + 20 : x + 140] = cv2.aruco.generateImageMarker(dictionary, mid, 120)[..., None]
+    det = BoardLocator().detect(frame)
+    assert not det.found and det.markers_found == 0
+    assert "saw marker ids [10, 11, 12, 13]" in det.note and "[0, 1, 2, 3]" in det.note
 
 
 @pytest.mark.parametrize(("name", "markers"), [("20261021_234020.jpg", 4), ("20261021_233534.jpg", 3)])

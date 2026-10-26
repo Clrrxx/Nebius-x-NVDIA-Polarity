@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import threading
 from collections import Counter
 from typing import Any
@@ -74,12 +75,15 @@ def diagnose(rt: Any, help_req: HelpRequest) -> dict[str, Any]:
     except RouterError as exc:
         log.warning("diagnosis failed: %s", exc)
         summary = {"unavailable": True, "reason": str(exc)}
-    rt.db.update_help_summary(help_req.id, summary)
-    updated = rt.db.get_help(help_req.id)
-    if updated is not None:
-        rt.hub_send("help", updated.model_dump())  # the hub's TA card gets the summary too
-    payload = rt.help_payload(updated)
-    rt.bus.publish("help_updated", payload)
+    try:
+        rt.db.update_help_summary(help_req.id, summary)
+        updated = rt.db.get_help(help_req.id)
+        if updated is not None:
+            rt.hub_send("help", updated.model_dump())  # the hub's TA card gets the summary too
+        payload = rt.help_payload(updated)
+        rt.bus.publish("help_updated", payload)
+    except sqlite3.ProgrammingError:  # the server shut down (database closed) while the model was answering
+        log.info("diagnosis for %s dropped: database closed", help_req.id)
     return summary
 
 

@@ -41,7 +41,7 @@ const RETAKE = cfg.retake_instructions || {};
 renderChips($("#qchips"), null);
 connectEvents({
   quality: (q) => {
-    renderChips($("#qchips"), q.chips);
+    renderChips($("#qchips"), q.chips, q.board);
     chipsOk = Object.values(q.chips || {}).every(Boolean) && (q.chips && Object.keys(q.chips).length === 5);
     const first = (q.failing || [])[0];
     if (!demoBypass) $("#qhint").textContent = chipsOk ? "Camera looks good." : first === "camera" ? "Waiting for the camera…" : RETAKE[first] || "";

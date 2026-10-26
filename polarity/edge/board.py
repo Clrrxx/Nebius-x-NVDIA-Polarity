@@ -140,11 +140,15 @@ class BoardLocator:
             quad = np.array([[x * w, y * h], [(x + rw) * w, y * h], [(x + rw) * w, (y + rh) * h],
                              [x * w, (y + rh) * h]], dtype=np.float32)
             return BoardDetection(found=True, markers_found=0, quad=quad, mode="roi", size=(self.warp_w, self.warp_h))
-        found = self._find_markers(frame)
+        found, others = self._find_markers(frame)
         ids, marker_corners = list(found), list(found.values())
         if len(found) < 3:
+            note = f"{len(found)} of 4 corner markers visible"
+            if others:  # ArUco squares are there, just not ours: a different print or dictionary
+                note += (f"; saw marker ids {others}, but this rig uses ids {list(self.marker_ids)}"
+                         " (print assets/print/marker_mat_A4.pdf)")
             return BoardDetection(found=False, markers_found=len(found), ids=ids, marker_corners=marker_corners,
-                                  note="fewer than 3 corner markers visible")
+                                  note=note)
         if len(found) == 4:
             made = self._make_layout(found, self._inner_corners(found), reuse=self._learned)
             if made is None:
@@ -170,8 +174,9 @@ class BoardLocator:
                               marker_corners=marker_corners, size=layout.size, aspect=layout.aspect,
                               note=self._describe(layout) + "; 4th corner estimated from the marker squares")
 
-    def _find_markers(self, frame: np.ndarray) -> dict[int, np.ndarray]:
-        """Marker id → its 4 corners (frame coords, ArUco order), first detection of each configured id."""
+    def _find_markers(self, frame: np.ndarray) -> tuple[dict[int, np.ndarray], list[int]]:
+        """(marker id → its 4 corners (frame coords, ArUco order), first detection of each configured id;
+        sorted ids of any other DICT_4X4_50 markers seen)."""
         h, w = frame.shape[:2]
         gray = frame if frame.ndim == 2 else cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         scale = 1.0
@@ -180,11 +185,14 @@ class BoardLocator:
             gray = cv2.resize(gray, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
         corners, ids, _ = self._detector.detectMarkers(gray)
         found: dict[int, np.ndarray] = {}
+        others: set[int] = set()
         if ids is not None:
             for c, mid in zip(corners, ids.flatten().tolist(), strict=False):
                 if mid in self.marker_ids and mid not in found:
                     found[int(mid)] = (c.reshape(4, 2) / scale).astype(np.float32)
-        return found
+                elif mid not in self.marker_ids:
+                    others.add(int(mid))
+        return found, sorted(others)
 
     @staticmethod
     def _inner_corners(found: dict[int, np.ndarray]) -> dict[int, int]:

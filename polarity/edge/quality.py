@@ -53,13 +53,16 @@ class QualityGate:
         self.markers_enabled = markers_enabled
 
     def evaluate(self, image: np.ndarray, markers_found: int | None = None,
-                 motion: float | None = None) -> QualityReport:
-        """Evaluate the warped board image (or the raw frame when the board was not found)."""
+                 motion: float | None = None, board_found: bool | None = None) -> QualityReport:
+        """Evaluate the warped board image (or the raw frame when the board was not found). ``board_found=False``
+        fails "markers" even when enough markers are visible (e.g. they do not outline a board), so the
+        Board chip agrees with what Check will do."""
         s = self.s
         m = image_metrics(image)
         metrics: dict[str, float | int | None] = {**m, "markers": markers_found, "motion": motion}
         failing: list[str] = []
-        if self.markers_enabled and markers_found is not None and markers_found < s.markers_min:  # type: ignore[attr-defined]
+        if self.markers_enabled and ((markers_found is not None and markers_found < s.markers_min)  # type: ignore[attr-defined]
+                                     or board_found is False):
             failing.append("markers")
         if motion is not None and motion > s.motion_max:  # type: ignore[attr-defined]
             failing.append("motion")

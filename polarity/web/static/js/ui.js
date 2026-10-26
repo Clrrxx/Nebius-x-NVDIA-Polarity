@@ -147,14 +147,23 @@ export const CHIPS = [
   { key: "steady", label: "Steady", icon: "steady" },
 ];
 
-export function renderChips(container, chips) {
+// board: {found, markers, ids, mode, note} from the edge monitor; explains a red "Board found" chip.
+export function renderChips(container, chips, board) {
   container.replaceChildren(...CHIPS.map(({ key, label, icon: ic }) => {
     const known = chips && key in chips;
     const ok = known && chips[key];
     const cls = !known ? "is-unknown" : ok ? "is-ok" : "is-bad";
     const stateIcon = !known ? "uncertain" : ok ? "pass" : "fix";
-    return el("span", { class: `qchip ${cls}`, role: "status", "aria-label": `${label}: ${!known ? "waiting" : ok ? "OK" : "needs attention"}` },
-      icon(ic), el("span", { text: label }), el("span", { class: "state" }, icon(stateIcon)));
+    let text = label;
+    let why = "";
+    if (key === "board" && board && board.mode === "markers") {
+      if (known && !ok) text = `Board ${board.markers}/4`;
+      why = board.note || "";
+    }
+    const attrs = { class: `qchip ${cls}`, role: "status",
+                    "aria-label": `${label}: ${!known ? "waiting" : ok ? "OK" : "needs attention"}${why ? ` (${why})` : ""}` };
+    if (why) attrs.title = why;
+    return el("span", attrs, icon(ic), el("span", { text }), el("span", { class: "state" }, icon(stateIcon)));
   }));
 }
 

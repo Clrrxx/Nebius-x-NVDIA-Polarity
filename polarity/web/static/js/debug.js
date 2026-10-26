@@ -130,7 +130,7 @@ document.addEventListener("click", async (e) => {
 
 connectEvents({
   quality: (q) => {
-    renderChips($("#qchips"), q.chips);
+    renderChips($("#qchips"), q.chips, q.board);
     latestMetrics = q.metrics || {};
     for (const n of document.querySelectorAll("[data-metric]")) {
       const v = latestMetrics[n.dataset.metric];

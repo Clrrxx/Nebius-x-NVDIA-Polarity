@@ -510,7 +510,7 @@ async function setupDemo() {
 let sceneSelect = null;
 connectEvents({
   quality: (q) => {
-    renderChips($("#qchips"), q.chips);
+    renderChips($("#qchips"), q.chips, q.board);
     const disconnected = q.camera && q.camera.connected === false;
     $("#cam-banner").hidden = !disconnected;
     if (disconnected) $("#cam-banner-text").textContent = `Camera disconnected — reconnecting…${q.camera.error ? " (" + q.camera.error + ")" : ""}`;

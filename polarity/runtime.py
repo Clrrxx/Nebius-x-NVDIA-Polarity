@@ -117,7 +117,9 @@ class EdgeMonitor:
         self.rt.engine.offer_baseline(warped, quality.ok)
         return {"ok": quality.ok, "failing": quality.failing,
                 "metrics": {k: (round(v, 3) if isinstance(v, float) else v) for k, v in quality.metrics.items()},
-                "chips": chips(quality), "camera": status, "inferred": bool(det.inferred)}
+                "chips": chips(quality), "camera": status, "inferred": bool(det.inferred),
+                "board": {"found": bool(det.found), "markers": det.markers_found, "ids": sorted(det.ids),
+                          "mode": det.mode, "note": det.note}}
 
     def _run(self) -> None:
         period = 1.0 / max(0.5, float(self.rt.config.settings.camera.quality_hz))
