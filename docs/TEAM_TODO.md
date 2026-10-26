@@ -45,9 +45,9 @@ Internal deadline: **Thu 29 Oct 23:59 SGT**.
   screen; simulated banner visible on the TA segment).
 - [ ] Upload the video to YouTube (**public**), put the link in the README (`{{YOUTUBE_URL}}`) and Devpost.
 - [ ] Replace the README hero screenshot with a GIF of the real rig; add a rig photo; fill in the Team table.
-- [ ] Fill in the `TODO-TEAM` / `[VERIFY]` items in `docs/DEVPOST.md` (it still says Nano Omni and 1024×768; the real
-  perception model is Nemotron 3.5 Super VL and audio was rejected), `docs/DEMO_SCRIPT.md` (model list),
-  `docs/FEEDBACK.md` ("Our own experience") and the README's "Where Token Factory accelerated our workflow".
+- [ ] Fill in the remaining `TODO-TEAM` / `[VERIFY]` items: `docs/DEVPOST.md` (TA ratio, "works on real hardware"
+  after the rig build, lessons learned), `docs/FEEDBACK.md` ("Our own experience"). Done: the Super VL model list in
+  DEVPOST/DEMO_SCRIPT (Wenjie, 26 Oct) and the README's "Where Token Factory accelerated our workflow" (27 Oct).
 - [ ] Check that CI is green on Linux, macOS and Windows (GitHub → Actions).
 - [ ] Make the repo public (after the key is rotated and purged) and submit on Devpost.
 

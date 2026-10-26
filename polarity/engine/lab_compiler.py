@@ -1,6 +1,6 @@
 """Lab-sheet compiler (BUILD_PROMPT.md 13.1, P1): any lab handout → a verifiable step definition.
 
-Pages are rendered with pypdfium2 at 150 dpi (photos are accepted directly). Nemotron Nano Omni reads each page
+Pages are rendered with pypdfium2 at 150 dpi (photos are accepted directly). The perception model (Super VL on our account) reads each page
 (document understanding), then Nemotron Super assembles a ``LabDefinition``, which is validated and saved as an
 AI-drafted lab that a TA must review in the editor before publishing. Capped at 10 pages, with a cost estimate
 shown before anything runs.

@@ -82,6 +82,20 @@ per model in the catalogue. **Phase 0 (2026-10-22):** native `tools` / `tool_cal
   different model set with no vision model for our account; there is no Nano Omni in `/v1/models`. No rate limits or
   timeouts in a full run (cost about $0.001).
 
+## 9. Intermittent hangs on Nemotron 3 Nano 30B (Observed)
+
+**What happened.** On the night of 26–27 Oct, `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` hung until the client timeout
+on 5 of 6 direct calls (a 2-token "Reply with OK" prompt, 30 s timeout), with thinking on or off and with
+`max_tokens` 16 or 256. A teammate's Phase 0 run hit the same timeout. Super VL, Super 120B and Ultra answered in
+0.4–2.3 s the whole time, and Nano itself was back to 0.4–1.1 s within the hour. No error status came back, only
+silence.
+
+**Impact.** Every interactive call that used Nano waited out its full timeout before failing. We added a fallback to
+Super and a 2-minute skip after a timeout, but only after a teammate thought our code was broken.
+
+**Suggestion.** Fail fast with a 503 when a model's queue is stuck, and show per-model health on a status page, so
+clients can fall back immediately instead of waiting.
+
 ## Our own experience (TODO-TEAM)
 
 - Onboarding / getting the key: TODO-TEAM

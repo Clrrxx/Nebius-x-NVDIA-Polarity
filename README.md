@@ -127,9 +127,11 @@ The app reads `data/capabilities.json` and adapts instead of assuming.
 **Swapping models is one line.** Because Token Factory speaks the OpenAI API, roles map to model IDs. Change a role
 with `POLARITY_MODEL_<ROLE>=<id>` in `.env` and nothing else changes.
 
-**Where Token Factory accelerated our workflow.** TODO-TEAM-CONFIRM after the live Phase 0 run. Planned evidence:
-one SDK and one base URL for all four Nemotron models; measured latencies from Phase 0; native JSON-schema output
-removing most parsing failures. Replace with what we actually saw.
+**Where Token Factory accelerated our workflow.** One OpenAI SDK and one base URL serve all four Nemotron models, so
+when Phase 0 found no Omni model on our account, moving perception to Super VL was a one-line `.env` change and no
+code changed. Strict `json_schema` output came back valid on the first try (T10), and `chat_template_kwargs` switched
+thinking off on all four models (a 2–3-token reply instead of 18–46 tokens of reasoning), which keeps interactive calls
+fast. A full Phase 0 run costs about $0.001, and a typed question to the live bench answers in 1.1–2.0 s end to end.
 
 ## Tavily
 
