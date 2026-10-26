@@ -30,7 +30,7 @@ audio:
   sample_rate: 16000
 timeouts_s:
   perception: 30
-  fast_text: 15
+  fast_text: 8                # Nano normally answers in < 1 s; on timeout the router falls back to reasoning
   reasoning: 45
   deep: 120
 retries:

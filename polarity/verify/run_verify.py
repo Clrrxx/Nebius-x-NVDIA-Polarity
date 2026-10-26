@@ -173,15 +173,20 @@ class Verifier:
             return self.client.chat.completions.create(model=model, messages=messages, max_tokens=max_tokens,
                                                        temperature=temperature, timeout=timeout, **kwargs)
 
-        t0 = time.perf_counter()
-        try:
-            resp, case_used, sent = call_with_case_policy(_do, model_id, self.case_used.get(model_id))
-        except openai.APIStatusError as exc:
-            return CallOutcome(ok=False, model=model_id, status_code=exc.status_code, error=error_text(exc),
-                               latency_ms=int((time.perf_counter() - t0) * 1000))
-        except openai.APIConnectionError as exc:  # includes APITimeoutError
-            return CallOutcome(ok=False, model=model_id, error=f"{type(exc).__name__}: {exc}",
-                               latency_ms=int((time.perf_counter() - t0) * 1000))
+        for attempt in range(2):  # one retry: a cold model or a slow network can time out once
+            t0 = time.perf_counter()
+            try:
+                resp, case_used, sent = call_with_case_policy(_do, model_id, self.case_used.get(model_id))
+                break
+            except openai.APIStatusError as exc:
+                return CallOutcome(ok=False, model=model_id, status_code=exc.status_code, error=error_text(exc),
+                                   latency_ms=int((time.perf_counter() - t0) * 1000))
+            except openai.APIConnectionError as exc:  # includes APITimeoutError
+                if attempt == 0:
+                    self.console.print(f"[dim]{model_id}: {type(exc).__name__}, retrying once[/dim]")
+                    continue
+                return CallOutcome(ok=False, model=model_id, error=f"{type(exc).__name__} (after one retry): {exc}",
+                                   latency_ms=int((time.perf_counter() - t0) * 1000))
         latency = int((time.perf_counter() - t0) * 1000)
         self.case_used[model_id] = case_used
         choice = resp.choices[0] if resp.choices else None
@@ -335,7 +340,9 @@ class Verifier:
             if not mid:
                 lines.append(f"{role}: unresolved")
                 continue
-            out = done.get(mid) or self.chat(mid, messages, max_tokens=16, temperature=0.0, timeout=60.0)
+            # Thinking is left at the model's default here (T4 tests switching it off), so the budget must leave
+            # room for the reasoning that precedes "OK"; 16 tokens ended every reply mid-thought (finish=length).
+            out = done.get(mid) or self.chat(mid, messages, max_tokens=256, temperature=0.0, timeout=60.0)
             done[mid] = out
             if out.ok:
                 self.role_latency[role] = out.latency_ms
@@ -362,7 +369,8 @@ class Verifier:
             b = self.chat(mid, [{"role": "system", "content": "/no_think\nReply with exactly: OK"},
                                 {"role": "user", "content": "ping"}], max_tokens=32)
             for name, out in (("chat_template_kwargs", a), ("system_flag", b)):
-                ok = out.ok and _says_ok(out.text) and not out.reasoning_seen
+                # Works = an answer with no reasoning. Not "says OK": Super 120B answers "ping" with "pong".
+                ok = out.ok and bool(out.text.strip()) and not out.reasoning_seen
                 works[name][role] = ok
                 self.thinking_details.setdefault(name, {})[role] = {
                     "http": out.status_code, "latency_ms": out.latency_ms, "says_ok": _says_ok(out.text),

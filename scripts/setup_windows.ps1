@@ -42,6 +42,26 @@ foreach ($c in $candidates) {
     }
 }
 if (-not $Py) {
+    # Interpreters that `py -3.12` does not match: uv-managed (listed by py as Astral/CPython3.12.x),
+    # Anaconda, or a python.exe that is not on PATH. Try every path the launcher and uv know about.
+    $paths = @()
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        $paths += (& py -0p 2>$null) | ForEach-Object { if ($_ -match '([A-Za-z]:\\.+?python\.exe)\s*$') { $Matches[1] } }
+    }
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        foreach ($want in "3.12", "3.11") { $paths += (& uv python find $want 2>$null) }
+    }
+    $paths += Get-ChildItem -Path (Join-Path $env:APPDATA "uv\python\cpython-3.1[12]*\python.exe") -ErrorAction SilentlyContinue |
+        ForEach-Object FullName
+    foreach ($want in "3.12", "3.11") {
+        $ownVenv = Join-Path $Root ".venv"
+        foreach ($p in ($paths | Where-Object { $_ -and -not $_.StartsWith($ownVenv, "OrdinalIgnoreCase") } | Select-Object -Unique)) {
+            if ((Test-Path -LiteralPath $p) -and (Get-PyVersion $p @()) -eq $want) { $Py = $p; $PyArgs = @(); break }
+        }
+        if ($Py) { break }
+    }
+}
+if (-not $Py) {
     Write-Host "Polarity needs Python 3.12 (3.11 also works; 3.13+ is not supported yet)." -ForegroundColor Yellow
     Write-Host "  Install:  winget install Python.Python.3.12"
     Write-Host "  or download from https://www.python.org/downloads/windows/ (tick 'Add python.exe to PATH')."

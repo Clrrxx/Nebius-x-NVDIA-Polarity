@@ -146,6 +146,31 @@ def test_deep_falls_back_to_reasoning(fake_token_factory: str, monkeypatch: pyte
     assert res.model_id == fake.SUPER and res.fallback_from == "deep"
 
 
+def test_fast_text_falls_back_to_reasoning_then_cools_down(fake_token_factory: str, monkeypatch: pytest.MonkeyPatch,
+                                                           isolated_env: Path) -> None:
+    cfg = _live_config(monkeypatch, isolated_env / "data", fake_token_factory,
+                       {"fast_text": fake.DOWN, "reasoning": fake.SUPER}, json_mode="json_object")
+    rec = MemoryRecorder()
+    router = ModelRouter(cfg, recorder=rec, sleep=lambda s: None)
+    res = router.call("fast_text", MESSAGES)
+    assert res.model_id == fake.SUPER and res.fallback_from == "fast_text"
+    tried = len(rec.calls)
+    res2 = router.call("fast_text", MESSAGES)  # the hung model is skipped instead of timing out again
+    assert res2.model_id == fake.SUPER and len(rec.calls) == tried + 1
+    assert rec.calls[-1]["model_id"] == fake.SUPER
+
+
+def test_last_role_in_chain_is_tried_even_when_cooling_down(fake_token_factory: str, monkeypatch: pytest.MonkeyPatch,
+                                                            isolated_env: Path) -> None:
+    cfg = _live_config(monkeypatch, isolated_env / "data", fake_token_factory, {"perception": fake.DOWN})
+    rec = MemoryRecorder()
+    router = ModelRouter(cfg, recorder=rec, sleep=lambda s: None)
+    for _ in range(2):
+        with pytest.raises(ModelCallFailed):
+            router.call("perception", MESSAGES)
+    assert len(rec.calls) == 6  # both calls really went out (3 tries each)
+
+
 def test_perception_has_no_text_fallback(fake_token_factory: str, monkeypatch: pytest.MonkeyPatch,
                                          isolated_env: Path) -> None:
     cfg = _live_config(monkeypatch, isolated_env / "data", fake_token_factory,

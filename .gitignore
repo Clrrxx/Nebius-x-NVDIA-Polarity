@@ -27,3 +27,6 @@ Thumbs.db
 # Save real team photos as .jpg so they are committed and override the synthetic .png renders.
 data/demo/**/*.png
 data/demo/**/synthetic_manifest.json
+
+# Personal overrides (TA_PIN, a private key, camera index): never committed
+.env.local

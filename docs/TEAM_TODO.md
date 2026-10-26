@@ -5,8 +5,11 @@ Internal deadline: **Thu 29 Oct 23:59 SGT**.
 
 ## Done
 
-- [x] Token Factory key in `.env.local` (committed and shared; the app reads it). Phase 0 passed live on 22 Oct:
+- [x] Token Factory key in `.env` (committed and shared; the app reads it). Phase 0 passed live on 22 Oct:
   `docs/PHASE0_REPORT.md`, README model table.
+- [x] 27 Oct: T3 "Text smoke test" FAIL with `fast_text: APITimeoutError` is Nano 30B hanging on Token Factory's
+  side (5 of 6 direct calls timed out that night), not our code. The app now falls back to Super when Nano hangs,
+  and verify retries once. T7/T8 audio FAIL/REJECTED is expected (our account has no Omni model).
 - [x] Real prices in `config/pricing.yaml`.
 - [x] First 12 rig photos in `data/real_photos/`. The board locator handles their hand-placed marker layout.
 
@@ -16,9 +19,10 @@ Internal deadline: **Thu 29 Oct 23:59 SGT**.
   `scripts/run_mac.sh`. Windows: the matching `.bat` files. `verify` writes this machine's `data/capabilities.json`
   (gitignored) and also rewrites `docs/PHASE0_REPORT.md` and the README model table. Don't commit those two unless the
   results really changed (`git checkout -- README.md docs/PHASE0_REPORT.md`).
-- [ ] **Before the repo goes public: rotate the key and remove `.env.local` from git history.** It holds the shared
-  key. After that, everyone keeps the new key in their own uncommitted `.env`.
-- [ ] **Change `TA_PIN`** before any demo or recording (in `.env.local`, or `TA_PIN=… scripts/run_mac.sh`).
+- [ ] **Before the repo goes public: rotate the key and remove `.env` from git history** (commit e970896 added it
+  with the shared key). After that, everyone keeps the new key in their own `.env.local` (gitignored).
+- [ ] **Change `TA_PIN`** before any demo or recording: put `TA_PIN=…` in `.env.local` on the demo laptop. That file
+  is gitignored, so the change never shows up in `git status`/`git diff`; that is expected. Restart the app after.
 - [ ] Optional: get a `TAVILY_API_KEY` (Best Use of Tavily bonus) and try `NE555` from the bench.
 - [ ] **Decide the demo lab and match the kit.** Lab 1 is a 3 V battery pack, push button and red LED on a
   breadboard; `lab1_5v` is the same circuit on a 5 V supply. The rig photos show a full-size breadboard, a blue LED,

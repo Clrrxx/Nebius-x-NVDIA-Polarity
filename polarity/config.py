@@ -92,7 +92,7 @@ class AudioSettings(BaseModel):
 
 class TimeoutSettings(BaseModel):
     perception: float = 30
-    fast_text: float = 15
+    fast_text: float = 8
     reasoning: float = 45
     deep: float = 120
 

@@ -30,9 +30,12 @@ log = logging.getLogger(__name__)
 FALLBACK_CHAIN: dict[str, list[str]] = {
     "deep": ["reasoning", "fast_text"],
     "reasoning": ["fast_text"],
-    "fast_text": [],
+    "fast_text": ["reasoning"],  # Nano on Token Factory can hang for minutes; Super answers the same small jobs
     "perception": [],  # no text fallback for perception: the UI offers a retry instead
 }
+# After a timeout, network error or 5xx, a role that has a fallback is skipped for this long, so one hung model
+# costs one timeout instead of one per call. The last role in a chain is always tried.
+COOLDOWN_S = 120.0
 
 
 class RouterError(Exception):
@@ -124,6 +127,7 @@ class ModelRouter:
         self._sleep = sleep
         self._json_mode_downgrade: str | None = None
         self._case_cache: dict[str, str] = {}
+        self._cooldown_until: dict[str, float] = {}  # role -> time.monotonic() until which it is skipped
         self.last_error: str | None = None
 
     # ── public API ───────────────────────────────────────────────────────────────────────────
@@ -144,15 +148,21 @@ class ModelRouter:
             if model is None:
                 last_exc = ModelUnavailable(f"No model configured for role '{current}'. Run `python -m polarity verify`.")
                 continue
+            if i + 1 < len(chain) and self._cooldown_until.get(current, 0.0) > time.monotonic():
+                last_exc = ModelCallFailed(f"Role '{current}' is cooling down after a failed call.")
+                continue
             try:
                 result = self._live_call(current, model.id, model.case, messages, schema, tools, temperature,
                                          max_tokens, thinking and current == "deep", timeout, interactive, session_id,
                                          tool_choice)
+                self._cooldown_until.pop(current, None)
                 if i > 0:
                     result.fallback_from = role
                 return result
             except (ModelCallFailed, ModelUnavailable) as exc:
                 last_exc = exc
+                if isinstance(exc, ModelCallFailed) and (exc.status_code is None or exc.status_code in _RETRYABLE_STATUS):
+                    self._cooldown_until[current] = time.monotonic() + COOLDOWN_S
                 if i + 1 < len(chain):
                     log.warning("role %s failed (%s); falling back to %s", current, exc, chain[i + 1])
                 continue
