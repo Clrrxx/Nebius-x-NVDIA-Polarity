@@ -6,7 +6,7 @@
 
 Built for the Nebius x NVIDIA Global AI Hackathon — Physical AI track.
 
-**Demo video:** {{YOUTUBE_URL}} <!-- TODO-TEAM: public YouTube link, under 3 minutes -->
+**Demo video:** {{[YOUTUBE_URL](https://youtu.be/ACN0nA6o1I4)}}
 
 ![Bench view in demo mode: the camera sees the breadboard, the warped "what the AI sees" view is inset, and a FIX verdict explains that the LED is reversed](docs/img/bench-demo.png)
 
